@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CardHub</string>
+    <string name="title_activity_main">CardHub</string>
+    <string name="package_name">eu.ra1g.cardhub</string>
+    <string name="custom_url_scheme">eu.ra1g.cardhub</string>
+</resources>

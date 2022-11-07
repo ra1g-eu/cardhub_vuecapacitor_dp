@@ -1,0 +1,6 @@
+{
+	"appId": "eu.ra1g.cardhub",
+	"appName": "cardhub",
+	"webDir": "dist",
+	"bundledWebRuntime": false
+}
