@@ -12,6 +12,7 @@ import {loadFonts} from "@/plugins/webfontloader"
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import '@mdi/font/css/materialdesignicons.css'
 import { App } from '@capacitor/app';
+import {BarcodeScanner} from "@capacitor-community/barcode-scanner";
 
 loadFonts()
 
@@ -43,7 +44,6 @@ const vuetify = createVuetify({
         }
     },
 });
-
 appV.use(vuetify);
 appV.use(VueAxios, axios);
 appV.use(router);
@@ -73,6 +73,13 @@ router.beforeEach((to) => {
 });
 
 App.addListener('backButton', ({ canGoBack }) => {
+    if(window.location.pathname == '/nova-karta' && document.getElementById('htmlTag').hidden == true){
+        BarcodeScanner.showBackground();
+        BarcodeScanner.stopScan();
+        document.getElementById('htmlTag').hidden = false; //hide camera to show webview
+        document.getElementById("scanBtn").style.display = 'none';
+        document.getElementById("scanBtn").hidden = true;
+    }
     if(canGoBack){
         window.history.back();
     } else {

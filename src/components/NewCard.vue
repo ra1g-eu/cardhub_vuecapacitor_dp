@@ -1,41 +1,46 @@
 <template>
-  <v-card v-if="isLoading" class="justify-center align-center fill-height d-flex flex-column" color="yellow-darken-1">
+  <v-card color="yellow-darken-1" id="refreshCard" elevation="0" class="h-100 fill-height">
+    <v-card-title>
+      <v-row align="center" dense="" no-gutters="">
+        <v-btn variant="flat" icon="mdi-arrow-left" color="black"
+               @click="this.$router.push({path: '/moje-karty'});"></v-btn>
+        <span class="ms-4">Výber obchodu</span></v-row>
+    </v-card-title>
+    <v-card-text v-if="this.cardShops != null && !this.isLoading">
+      <v-list bg-color="yellow-darken-1">
+        <v-list-item
+            v-for="(card, index) in cardShops"
+            :key="index"
+            :value="card"
+            active-color="black"
+            @click="this.cardShop = {shopId: card.shopId, shopName: card.shopName}; insertShopDetailsDialog = true"
+        >
+          <template v-slot:prepend>
+            <v-avatar class="me-2">
+              <v-img
+                  :src="card.shopLogo"
+                  :alt="card.shopName"
+              ></v-img>
+            </v-avatar>
+          </template>
+          <v-list-item-title v-text="card.shopName"></v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-card-text>
+    <v-card-text class="d-flex flex-column justify-center" v-else>
+      <span class="text-center text-subtitle-1">Žiadne obchody sa nenašli! Potiahni dole pre obnovenie.</span>
+      <v-card v-if="isLoading" class="justify-center align-center fill-height d-flex flex-column" color="yellow-darken-1">
         <v-progress-circular
             :size="65"
             width="5"
             indeterminate
             color="black"
         ></v-progress-circular>
-    <v-card-subtitle class="mt-5 text-black">Načítavam obchody...</v-card-subtitle>
+        <v-card-subtitle class="mt-5 text-black">Načítavam obchody...</v-card-subtitle>
+      </v-card>
+
+    </v-card-text>
   </v-card>
-  <v-card v-else color="yellow-darken-1">
-    <v-card-title>
-      <v-row align="center" dense="" no-gutters="">
-        <v-btn variant="flat" icon="mdi-arrow-left" color="black" @click="this.$router.push({path: '/moje-karty'});"></v-btn>
-        <span class="ms-4">Výber obchodu</span></v-row>
-    </v-card-title>
-      <v-card-text>
-        <v-list bg-color="yellow-darken-1">
-          <v-list-item
-              v-for="(card, index) in cardShops"
-              :key="index"
-              :value="card"
-              active-color="black"
-              @click="this.cardShop = {shopId: card.shopId, shopName: card.shopName}; insertShopDetailsDialog = true"
-          >
-            <template v-slot:prepend>
-              <v-avatar class="me-2">
-                <v-img
-                    :src="card.shopLogo"
-                    :alt="card.shopName"
-                ></v-img>
-              </v-avatar>
-            </template>
-            <v-list-item-title v-text="card.shopName"></v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-card-text>
-    </v-card>
   <v-dialog
       v-model="insertShopDetailsDialog"
       persistent
@@ -46,7 +51,7 @@
       <v-card-title>
         <v-row align="center" dense="" no-gutters="">
           <v-btn variant="flat" icon="mdi-arrow-left" color="black" @click="insertShopDetailsDialog=false;"></v-btn>
-          <span class="ms-4"><span class="text-indigo-darken-4">{{this.cardShop.shopName}}</span></span></v-row>
+          <span class="ms-4"><span class="text-indigo-darken-4">{{ this.cardShop.shopName }}</span></span></v-row>
       </v-card-title>
       <v-card-title></v-card-title>
       <v-card-text class="mb-0">
@@ -73,16 +78,18 @@
             <v-card class="ma-1" color="black">
               <div class="text-h6 font-weight-light align-center text-center text-primary" @click="startScan">
                 <v-icon>mdi-camera</v-icon>
-                <v-spacer></v-spacer>Naskenovať čiarový kód
+                <v-spacer></v-spacer>
+                Naskenovať čiarový kód
               </div>
             </v-card>
           </v-col>
           <v-col cols="6">
             <v-card class="ma-1 border border-secondary border-2" color="black">
-              <div class="text-h6 font-weight-light align-center text-center text-secondary" @click="this.$refs.cardImgInput.click()">
-                <v-icon>{{ this.cardImage.length > 0 ? 'mdi-check' : 'mdi-file' }}</v-icon>
+              <div class="text-h6 font-weight-light align-center text-center text-secondary"
+                   @click="this.$refs.cardImgInput.click()">
+                <v-icon>{{ this.cardManualCode.length > 0 ? 'mdi-check' : 'mdi-file' }}</v-icon>
                 <v-spacer></v-spacer>
-                {{ this.cardImage.length > 0 ? 'Obrázok zvolený' : 'Nahrať obrázok karty' }}
+                {{ this.cardManualCode.length > 0 ? 'Obrázok zvolený' : 'Nahrať obrázok karty' }}
               </div>
             </v-card>
           </v-col>
@@ -100,9 +107,10 @@
             ></v-text-field>
           </v-col>
         </v-row>
-        </v-card-text>
+      </v-card-text>
       <v-card-actions>
-        <v-btn variant="flat" block append-icon="mdi-check"  type="button" @click="addNewCard" color="black"><span class="text-green">Uložiť</span></v-btn>
+        <v-btn variant="flat" block append-icon="mdi-check" type="button" @click="addNewCard" color="black"><span
+            class="text-green">Uložiť</span></v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -116,19 +124,23 @@
       prepend-inner-icon="mdi-camera"
       prepend-icon
       label="Obrázok karty"
+      @change="codeFromImageLoaded"
   ></v-file-input>
-  <img class="d-none" id="curImage" height="200" size="" src="" alt="xd">
-  <v-btn id="scanBtn" icon="mdi-close" @click="stopScan" class="text-center"></v-btn>
+  <div class="d-none" id="reader"></div>
+  <v-btn id="scanBtn" icon="mdi-close" size="large" @click="stopScan" class="text-center"></v-btn>
 </template>
 
 <script>
+/* eslint-disable */
 import {BarcodeScanner} from "@capacitor-community/barcode-scanner";
 import Swal from "sweetalert2";
-import QrcodeDecoder from "qrcode-decoder";
+import {Html5Qrcode} from "html5-qrcode";
+import PullToRefresh from 'pulltorefreshjs';
+
 export default {
   name: "NewCard",
-  data(){
-    return{
+  data() {
+    return {
       rules: [
         value => {
           return !value || !value.length || value[0].size < 5000000 || 'Obrázok nemôže byť väčší ako 5 MB!'
@@ -136,7 +148,7 @@ export default {
       ],
       insertShopDetailsDialog: false,
       cardShop: {shopId: '1', shopName: 'Všeobecný obchod'},
-      cardShops: [],
+      cardShops: null,
       cardManualCode: '',
       snackBarColor: 'text-red',
       cardCountry: ['Slovensko', 'Česko'],
@@ -152,12 +164,61 @@ export default {
   mounted() {
     this.systemCodeName = localStorage.getItem('CardHub_LoginCode');
     document.getElementById("scanBtn").style.display = 'none';
-    this.isLoading = true;
-    this.getShops();
+    let _this = this;
+    PullToRefresh.init({
+      instructionsPullToRefresh: 'Potiahni dole pre obnovu obchodov',
+      instructionsReleaseToRefresh: 'Uvoľni pre obnovenie obchodov',
+      instructionsRefreshing: 'Obnovujem...',
+      distReload: 110,
+      distMax: 90,
+      distThreshold: 80,
+      mainElement: '#refreshCard',
+      onRefresh() {
+        _this.getShops();
+      }
+    });
+    //this.isLoading = true;
+    //this.getShops();
     this.cardShops = JSON.parse(localStorage.getItem('CardHub_CurrentShops'));
-    console.log(this.cardShops);
+    //console.log(this.cardShops);
   },
-  methods:{
+  methods: {
+    codeFromImageLoaded(){
+      const html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.scanFile(this.cardImage[0], false)
+          .then(decodedText => {
+            this.cardManualCode = decodedText;
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Úspech',
+              html: 'Kód ' + decodedText + ' z obrázku bol načítaný! Prosím skontroluj kód. Ak je nesprávny, vlož ho manuálne alebo ho naskenuj cez kameru.',
+              icon: "success",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
+          })
+          .catch(err => {
+            console.log(err);
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Pozor',
+              html: 'Problém s naskenovaním kódu. Vlož kód manuálne alebo opakuj akciu.',
+              icon: "warning",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
+          });
+    },
     stopScan() {
       BarcodeScanner.showBackground();
       BarcodeScanner.stopScan();
@@ -166,26 +227,30 @@ export default {
       document.getElementById("scanBtn").hidden = true;
     },
     async startScan() {
-      document.getElementById('htmlTag').hidden = true; //hide webview to show camera
-      document.getElementById("scanBtn").style.display = '';
-      document.getElementById("scanBtn").hidden = false;
-
-      await BarcodeScanner.hideBackground(); // make background of WebView transparent
-      const status = await BarcodeScanner.checkPermission({ force: true });
+      const status = await BarcodeScanner.checkPermission({force: true});
 
       if (status.granted) {
+        document.getElementById('htmlTag').hidden = true; //hide webview to show camera
+
+        await BarcodeScanner.hideBackground();
+        document.getElementById("scanBtn").style.display = '';
+        document.getElementById("scanBtn").hidden = false;
+
         const result = await BarcodeScanner.startScan();
 
-        document.getElementById('htmlTag').hidden = false; //hide camera to show webview
-        document.getElementById("scanBtn").style.display = 'none';
-        document.getElementById("scanBtn").hidden = true;
 
         if (result.hasContent) {
-          if(result.content.length > 2 && /^[0-9]+$/.test(result.content)){
+          if (result.content.length > 2 && /^[0-9]+$/.test(result.content)) {
+            document.getElementById('htmlTag').hidden = false; //hide camera to show webview
+            document.getElementById("scanBtn").style.display = 'none';
+            document.getElementById("scanBtn").hidden = true;
             this.cardManualCode = result.content;
             Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
               title: 'Úspech',
-              html: 'Kód '+this.cardManualCode+' z karty bol načítaný! Prosím skontroluj kód. Ak je nesprávny, vlož ho manuálne alebo nahraj obrázok.',
+              html: 'Kód ' + this.cardManualCode + ' z karty bol načítaný! Prosím skontroluj kód. Ak je nesprávny, vlož ho manuálne alebo nahraj obrázok.',
               icon: "success",
               confirmButtonText: 'OK',
             }).then((result) => {
@@ -195,8 +260,11 @@ export default {
             });
           } else {
             Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
               title: 'Chyba',
-              html: 'Kód '+this.cardManualCode+' z karty nie je správny! Vlož kód manuálne alebo nahraj obrázok.',
+              html: 'Kód ' + this.cardManualCode + ' z karty nie je správny! Vlož kód manuálne alebo nahraj obrázok.',
               icon: "warning",
               confirmButtonText: 'OK',
             }).then((result) => {
@@ -208,6 +276,9 @@ export default {
         }
       } else {
         Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
           title: 'Chyba',
           html: 'Povolenie na použitie fotoaparátu nebolo udelené!',
           icon: "warning",
@@ -219,7 +290,8 @@ export default {
         });
       }
     },
-    getShops(){
+    getShops() {
+      this.isLoading = true;
       this.$axios.get(this.$apiUrl + "api/cardhub/getShops/", {
         headers: {
           'Authorization': `SystemCode ${this.systemCodeName}`
@@ -229,7 +301,7 @@ export default {
           this.isLoading = false;
           Swal.fire({
             title: 'Chyba',
-            html: 'Nepodarilo sa načítať obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: '+ response.data.message,
+            html: 'Nepodarilo sa načítať obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
             icon: "warning",
             confirmButtonText: 'OK',
           }).then((result) => {
@@ -241,13 +313,23 @@ export default {
           localStorage.setItem('CardHub_CurrentShops', JSON.stringify(response.data.message));
           setTimeout(() => this.isLoading = false, Math.floor(Math.random() * 300));
           this.cardShops = JSON.parse(localStorage.getItem('CardHub_CurrentShops'));
+          Swal.fire({
+            title: 'Úspech',
+            html: 'Obchody načítané!',
+            icon: "success",
+            confirmButtonText: 'OK',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              Swal.close();
+            }
+          });
         }
       }).catch(err => {
         this.isLoading = false;
-        if(!localStorage.getItem('CardHub_CurrentShops')){
+        if (!localStorage.getItem('CardHub_CurrentShops')) {
           Swal.fire({
             title: 'Chyba',
-            html: 'Nepodarilo sa načítať nové obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: '+ err.response.data.message,
+            html: 'Nepodarilo sa načítať nové obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
             icon: "warning",
             confirmButtonText: 'OK',
           }).then((result) => {
@@ -258,19 +340,8 @@ export default {
         }
       });
     },
-    addNewCard(){
-      /* eslint-disable */
-      var reader2 = new FileReader();
-      reader2.readAsDataURL(this.cardImage[0]);
-      reader2.onloadend = function(event) {
-        document.getElementById("curImage").src = event.target.result;
-
-      };
-      const qr = new QrcodeDecoder();
-      qr.decodeFromImage(document.querySelector("#curImage")).then((res) => {
-        console.log(res);
-      });
-      /*e.preventDefault();
+    addNewCard() {
+      event.preventDefault();
       let formData = new FormData();
       if(this.cardSelectedCountry){
         if(this.cardManualCode != ''){ // naskenovany kod
@@ -279,7 +350,7 @@ export default {
           formData.append('shopId', this.cardShop.shopId);
           formData.append('cardDesc', this.cardDesc);
           formData.append('cardManualCode', this.cardManualCode);
-        } else if(this.cardManualCode == ''){ // nahraty obrazok
+        } /*else if(this.cardManualCode == ''){ // nahraty obrazok
           if(this.cardImage[0].size < 5000000) {
             if (this.cardImage[0].type === 'image/jpeg' || this.cardImage[0].type === 'image/jpg' || this.cardImage[0].type === 'image/png') {
               formData.append('file', this.cardImage[0], this.systemCodeName+'_'+this.cardShop.shopName.replaceAll(' ','').toLowerCase().trim()+'_'+this.cardSelectedCountry.toLowerCase().trim()+'_'+this.cardImage[0].name);
@@ -290,8 +361,7 @@ export default {
               formData.append('cardManualCode', '--');
             }
           }
-        }
-        console.log('xdddd'+typeof this.cardShop.shopId);
+        }*/
         this.$axios.post(this.$apiUrl + "api/cardhub/uploadCardWithCode/",formData,{
           headers: {
             'Authorization': `SystemCode ${this.systemCodeName}`,
@@ -350,10 +420,9 @@ export default {
       this.cardImage = [];
       this.cardDesc = '';
       this.cardManualCode = '';
-      */
     },
-    reloadCards(){
-      this.$axios.get(this.$apiUrl + "api/cardhub/getCards/"+this.systemCodeName.trim().split('#')[0] + "/"+this.systemCodeName.trim().split('#')[1], {
+    reloadCards() {
+      this.$axios.get(this.$apiUrl + "api/cardhub/getCards/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1], {
         headers: {
           'Authorization': `SystemCode ${this.systemCodeName}`
         }
@@ -361,7 +430,7 @@ export default {
         if (response.data.status === 'error') {
           Swal.fire({
             title: 'Chyba',
-            html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: '+ response.data.message,
+            html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + response.data.message,
             icon: "warning",
             confirmButtonText: 'OK',
           }).then((result) => {
@@ -374,7 +443,17 @@ export default {
         }
       });
     }
-  }
+  },
+  beforeUnmount() {
+    PullToRefresh.destroyAll();
+    this.stopScan();
+  },
+  deactivated() {
+    this.stopScan();
+  },
+  beforeDestroy() {
+    this.stopScan();
+  },
 }
 </script>
 

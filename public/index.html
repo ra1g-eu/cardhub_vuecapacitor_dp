@@ -14,6 +14,14 @@
       <link rel="mask-icon" href="<%= BASE_URL %>safari-pinned-tab.svg" color="#5bbad5">
       <meta name="msapplication-TileColor" content="#00a300">
       <title><%= htmlWebpackPlugin.options.title %></title>
+      <style>
+          .codeFromImageSwal {
+              z-index: 80000 !important;
+          }
+          #scanBtn {
+              z-index: 100000 !important;
+          }
+      </style>
   </head>
   <body>
     <noscript>

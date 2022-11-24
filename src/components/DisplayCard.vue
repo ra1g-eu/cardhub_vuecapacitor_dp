@@ -1,30 +1,46 @@
 <template>
-  <v-card class="fill-height d-flex flex-column mb-10" color="yellow-darken-1">
-    <v-card-title>
-      <v-row align="center" dense="" no-gutters="">
-        <v-btn variant="flat" icon="mdi-arrow-left" color="black" @click="this.$router.push({path: '/moje-karty'});"></v-btn>
-        <span class="ms-4">{{ this.cardName }}<span
-            class="font-weight-light text-subtitle-2"> ({{ this.cardCountry }})</span></span></v-row>
-    </v-card-title>
-    <v-card-text class="justify-center text-center">
-      <vue-barcode v-if="this.barcodeCodeToGen != '--'" class="justify-center" :options="{ displayValue: true }"
-                   tag="svg" :value="this.barcodeCodeToGen">
-        Nastala chyba pri generovaní čiarového kódu!
-      </vue-barcode>
-      <v-img v-else class="mb-5 mt-0" :src="this.cardUrl">
-        <template v-slot:placeholder>
-          <div class="d-flex align-center justify-center fill-height">
-            <v-progress-circular
-                :size="65"
-                width="5"
-                indeterminate
-                color="black"
-            ></v-progress-circular>
-          </div>
-        </template>
-      </v-img>
-    </v-card-text>
-  </v-card>
+  <v-app-bar
+      color="black"
+      app>
+    <v-btn icon="mdi-arrow-left" border="0" @click="this.$router.push({path: '/moje-karty'});"
+           variant="outlined"></v-btn>
+    <v-toolbar-title class="font-weight-light text-subtitle-1">{{ this.cardName }}
+      <v-spacer></v-spacer>
+      ({{ this.cardCountry }})
+    </v-toolbar-title>
+    <v-btn icon="mdi-playlist-edit" border="0" variant="outlined" @click="this.cardEditDialog = true;"></v-btn>
+  </v-app-bar>
+  <v-main class="elevation-0">
+    <v-card class="mt-15 elevation-0" color="yellow-darken-1">
+      <v-card-text class="justify-center text-center">
+        <div v-if="isShowingQrCode">
+          <qrcode-vue :value="this.barcodeCodeToGen" :size="190" background="transparent" level="H"
+                      class="justify-center"></qrcode-vue>
+        </div>
+        <div v-else>
+          <vue-barcode class="justify-center" :options="{ displayValue: true, width: 2.5, height: 150 }"
+                       tag="svg" :value="this.barcodeCodeToGen">
+            Nastala chyba pri generovaní čiarového kódu!
+          </vue-barcode>
+        </div>
+      </v-card-text>
+    </v-card>
+    <v-btn
+        class="mb-16 me-2 rounded-circle "
+        @click="this.isShowingQrCode = !this.isShowingQrCode"
+        color="black"
+        rounded
+        height="70"
+        width="70"
+        fab
+        position="fixed"
+        location="right bottom"
+    >
+      <v-icon color="white" size="35">mdi-qrcode</v-icon>
+    </v-btn>
+  </v-main>
+
+
   <v-row justify="center">
     <v-dialog
         v-model="cardNotesDialog"
@@ -48,19 +64,28 @@
         v-model="cardEditDialog"
         fullscreen=""
     >
-      <v-card color="black">
-        <v-card-title>
-          <v-row justify="space-between" no-gutters="" align="center">
-            <v-col cols="11">
-              <v-card-title class="text-wrap text-start"><span class="text-yellow-darken-1">{{ this.cardName }}<span
-                  class="font-weight-light text-subtitle-2"> ({{ this.cardCountry }})</span></span></v-card-title>
-            </v-col>
-            <v-col cols="1">
-              <v-icon icon="mdi-delete" @click="confirmCardDelete" color="red" class="v-btn--elevated"></v-icon>
-            </v-col>
+
+      <v-card color="yellow-darken-1">
+        <v-card-title class="bg-black pt-6 pb-6">
+          <v-row justify="start" align="center">
+            <v-btn icon="mdi-arrow-left" border="0" @click="this.cardEditDialog = !this.cardEditDialog"
+                   variant="outlined"></v-btn>
+            <span class="ms-5 text-subtitle-1">Úprava {{ this.cardName }} ({{ this.cardCountry }})
+          </span>
           </v-row>
         </v-card-title>
         <v-card-text>
+          <v-card-text>
+            <v-textarea
+                color="yellow-darken-1"
+                v-model="this.cardEditDesc"
+                clearable
+                name="cardDesc"
+                label="Poznámka ku karte"
+                :placeholder="this.cardNotes"
+                auto-grow
+            ></v-textarea>
+          </v-card-text>
           <v-card-text v-if="barcodeCodeToGen !== '--'">
             <v-text-field
                 color="black"
@@ -75,25 +100,14 @@
                 :placeholder="this.barcodeCodeToGen"
             ></v-text-field>
           </v-card-text>
-          <v-card-text>
-            <v-textarea
-                color="yellow-darken-1"
-                v-model="this.cardEditDesc"
-                clearable
-                name="cardDesc"
-                label="Poznámka ku karte"
-                :placeholder="this.cardNotes"
-                auto-grow
-            ></v-textarea>
-          </v-card-text>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="white" variant="outlined" append-icon="mdi-close"
-                 @click="this.cardEditDialog = false;">Zrušiť
+          <v-btn color="green-darken-2" class="text-white" variant="flat" append-icon="mdi-check"
+                 @click="editCard(this.cardEditDesc, this.cardEditCode);this.cardEditDialog = false;">Uložiť
           </v-btn>
           <v-spacer></v-spacer>
-          <v-btn color="yellow-darken-1" variant="outlined" append-icon="mdi-check"
-                 @click="editCard(this.cardEditDesc, this.cardEditCode);this.cardEditDialog = false;">Uložiť
+          <v-btn color="black" variant="flat" append-icon="mdi-close"
+                 @click="this.cardEditDialog = false;">Zrušiť
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -103,37 +117,41 @@
       id="bottomNav2"
       bg-color="black"
       grow>
-    <v-btn variant="text" @click="this.cardEditDialog = true;">
-      <span>Upraviť</span>
-      <v-icon>mdi-cog</v-icon>
+    <v-btn variant="text" @click="confirmCardDelete">
+      <v-icon class="mb-1">mdi-delete</v-icon>
+      <span>Vymazať</span>
     </v-btn>
     <v-btn variant="text" @click="redirectToPage()">
+      <v-icon class="mb-1">mdi-open-in-new</v-icon>
       <span>Letáky</span>
-      <v-icon>mdi-open-in-new</v-icon>
     </v-btn>
     <v-btn variant="text" @click="showNotes">
+      <v-icon class="mb-1">mdi-comment-text-multiple</v-icon>
       <span>Poznámky</span>
-      <v-icon>mdi-comment-text-multiple</v-icon>
     </v-btn>
     <v-btn variant="text" @click="addFavorite(this.cardUuid)">
+      <v-icon size="large" class="mb-1">{{ this.cardIsFavorite == true ? 'mdi-heart' : 'mdi-heart-outline' }}</v-icon>
       <span>Obľúbené</span>
-      <v-icon size="large">{{ this.cardIsFavorite == true ? 'mdi-heart' : 'mdi-heart-outline' }}</v-icon>
     </v-btn>
   </v-bottom-navigation>
+
 </template>
 
 <script>
 import VueBarcode from '@chenfengyuan/vue-barcode';
+import QrcodeVue from 'qrcode.vue';
 import Swal from "sweetalert2";
 import {Browser} from '@capacitor/browser';
 
 export default {
   name: "DisplayCard",
   components: {
-    'vue-barcode': VueBarcode
+    'vue-barcode': VueBarcode,
+    'qrcode-vue': QrcodeVue,
   },
   data() {
     return {
+      isShowingQrCode: true,
       cardEditCode: '',
       cardEditDesc: '',
       barcodeCodeToGen: '',
@@ -151,8 +169,12 @@ export default {
     }
   },
   methods: {
-    editCard(){
-      this.$axios.post(this.$apiUrl + "api/cardhub/editCard",{"cardUuid":this.cardUuid, "cardDesc": this.cardEditDesc, "cardManualCode":this.cardEditCode},{
+    editCard() {
+      this.$axios.post(this.$apiUrl + "api/cardhub/editCard", {
+        "cardUuid": this.cardUuid,
+        "cardDesc": this.cardEditDesc,
+        "cardManualCode": this.cardEditCode
+      }, {
         headers: {
           'Authorization': `SystemCode ${this.systemCodeName}`,
           'Content-Type': 'application/json'
@@ -161,7 +183,7 @@ export default {
         if (response.data.status === 'error') {
           Swal.fire({
             title: 'Chyba',
-            html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: '+ response.data.message,
+            html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
             icon: "warning",
             confirmButtonText: 'OK',
           }).then((result) => {
@@ -185,7 +207,7 @@ export default {
         console.log(err);
         Swal.fire({
           title: 'Chyba',
-          html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: '+ err.response.data.message,
+          html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
           icon: "warning",
           confirmButtonText: 'OK',
         }).then((result) => {
@@ -248,9 +270,12 @@ export default {
     confirmCardDelete() {
       this.cardEditDialog = false;
       Swal.fire({
-        title: 'Info',
+        customClass: {
+          container: 'codeFromImageSwal'
+        },
+        title: 'Pozor',
         html: 'Naozaj vymazať kartu ' + this.cardName + ' (' + this.cardCountry + ') ?',
-        icon: "info",
+        icon: "warning",
         confirmButtonText: 'OK',
         showCancelButton: true,
         cancelButtonText: 'Zrušiť',
@@ -259,7 +284,6 @@ export default {
           this.deleteCard();
         } else if (result.dismiss === Swal.DismissReason.cancel) {
           Swal.close();
-          this.cardEditDialog = true;
         }
       });
     },
