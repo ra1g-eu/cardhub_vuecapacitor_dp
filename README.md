@@ -15,10 +15,14 @@ npm run serve
 npm run build
 ```
 
-### Lints and fixes files
+### Sync with capacitor
 ```
-npm run lint
+npx cap sync
 ```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+### Open IDE for Android app
+```
+npx cap open android
+```
+
+### Build .apk from Android Studio

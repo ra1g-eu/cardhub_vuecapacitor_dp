@@ -13,6 +13,7 @@ import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import '@mdi/font/css/materialdesignicons.css'
 import { App } from '@capacitor/app';
 import {BarcodeScanner} from "@capacitor-community/barcode-scanner";
+import {FirebaseCrashlytics} from "@capacitor-community/firebase-crashlytics";
 
 loadFonts()
 
@@ -29,6 +30,35 @@ const router = createRouter({
 });
 
 let appV = createApp(AppX);
+
+appV.mixin({
+    methods: {
+        async addLogMessage(message){
+            await FirebaseCrashlytics.addLogMessage({
+                message: message
+            });
+        },
+        async setContext(key, value, type) {
+            await FirebaseCrashlytics.setContext({
+                key: key,
+                value: value,
+                type: type
+            });
+        },
+        async recordException(message) {
+            await FirebaseCrashlytics.recordException({
+                message: message
+            });
+        },
+        async forceCrash(message) {
+            await FirebaseCrashlytics.crash({ message: message });
+        },
+    },
+});
+
+
+FirebaseCrashlytics.setEnabled({enabled: true}).then();
+FirebaseCrashlytics.sendUnsentReports().then();
 
 const vuetify = createVuetify({
     components,
@@ -52,8 +82,8 @@ appV.mount('#app');
 axios.defaults.headers.common['App-Request-Header'] = 'CardHub/REQ/CH/1.0.0';
 appV.config.globalProperties.$axios = axios;
 appV.config.globalProperties.$router = router;
-//appV.config.globalProperties.$apiUrl = 'https://api.ra1g.eu/';
-appV.config.globalProperties.$apiUrl = 'http://localhost:3000/';
+appV.config.globalProperties.$apiUrl = 'https://api.ra1g.eu/';
+//appV.config.globalProperties.$apiUrl = 'http://localhost:3000/';
 
 router.beforeEach((to) => {
     if (!localStorage.getItem('CardHub_LoginCode')) {

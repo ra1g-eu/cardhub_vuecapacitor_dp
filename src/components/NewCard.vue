@@ -1,11 +1,15 @@
 <template>
+  <v-app-bar
+      color="black"
+      app>
+    <v-btn icon="mdi-arrow-left" border="0" @click="this.$router.push({path: '/moje-karty'});"
+           variant="outlined"></v-btn>
+    <v-toolbar-title class="font-weight-normal text-subtitle-1">Výber obchodu
+    </v-toolbar-title>
+  </v-app-bar>
+  <v-main>
   <v-card color="yellow-darken-1" id="refreshCard" elevation="0" class="h-100 fill-height">
-    <v-card-title>
-      <v-row align="center" dense="" no-gutters="">
-        <v-btn variant="flat" icon="mdi-arrow-left" color="black"
-               @click="this.$router.push({path: '/moje-karty'});"></v-btn>
-        <span class="ms-4">Výber obchodu</span></v-row>
-    </v-card-title>
+
     <v-card-text v-if="this.cardShops != null && !this.isLoading">
       <v-list bg-color="yellow-darken-1">
         <v-list-item
@@ -41,17 +45,21 @@
 
     </v-card-text>
   </v-card>
-  <v-dialog
+  </v-main>
+    <v-dialog
       v-model="insertShopDetailsDialog"
       persistent
       fullscreen=""
       transition="dialog-bottom-transition"
   >
     <v-card color="yellow-darken-1">
-      <v-card-title>
-        <v-row align="center" dense="" no-gutters="">
-          <v-btn variant="flat" icon="mdi-arrow-left" color="black" @click="insertShopDetailsDialog=false;"></v-btn>
-          <span class="ms-4"><span class="text-indigo-darken-4">{{ this.cardShop.shopName }}</span></span></v-row>
+      <v-card-title class="bg-black pt-6 pb-6">
+        <v-row justify="start" align="center">
+          <v-btn icon="mdi-arrow-left" border="0" @click="insertShopDetailsDialog=false;"
+                 variant="outlined"></v-btn>
+          <span class="ms-5">{{ this.cardShop.shopName }}
+          </span>
+        </v-row>
       </v-card-title>
       <v-card-title></v-card-title>
       <v-card-text class="mb-0">

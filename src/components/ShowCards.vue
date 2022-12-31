@@ -64,7 +64,7 @@
     <v-btn
         variant="text"
         @click="filterFreq">
-      <v-icon :icon="filterFrequency == false ? 'mdi-trending-down' : 'mdi-trending-up'" class="mb-1"></v-icon>
+      <v-icon :icon="filterFrequency == false ? 'mdi-order-numeric-ascending' : 'mdi-order-numeric-descending'" class="mb-1"></v-icon>
       <span>Zoradenie</span>
     </v-btn>
     <v-btn
@@ -128,6 +128,8 @@
 <script>
 import Swal from "sweetalert2";
 import PullToRefresh from 'pulltorefreshjs';
+
+
 
 export default {
   name: "ShowCards",
@@ -242,14 +244,14 @@ export default {
                 }
               });
             } else {
-              localStorage.removeItem('CardHub_LoginCode');
-              localStorage.removeItem('CardHub_MyCards');
+              localStorage.clear();
               this.$router.push({path: '/'});
             }
-          }).catch(err => {
+          }).catch(async err => {
+            console.log(err.message);
             Swal.fire({
               title: 'Chyba',
-              html: 'Nepodarilo sa odhlásiť! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
+              html: 'Nepodarilo sa odhlásiť! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.message,
               icon: "warning",
               confirmButtonText: 'OK',
             }).then((result) => {
@@ -257,7 +259,10 @@ export default {
                 Swal.close();
               }
             });
-          })
+            await this.addLogMessage('Axios logout = ' + err.message);
+            await this.setContext('showcards', 'logoutbutton', 'string');
+            await this.recordException('No internet access when logging out! Axios crash.');
+          });
         } else {
           Swal.close();
         }

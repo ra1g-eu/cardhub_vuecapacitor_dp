@@ -1,13 +1,6 @@
 <template>
   <v-app-bar><v-toolbar-title><v-icon icon="mdi-card-search-outline"></v-icon> CardHub</v-toolbar-title></v-app-bar>
   <v-container class="mt-15">
-    <v-row justify="center" v-if="enterSystemAlertMessage !== ''" class="mt-15 mb-15">
-      <v-col cols="4">
-        <v-alert class="pa-2 ma-2" type="info" icon="fas fa-info-circle" variant="outlined">
-          <v-alert-title>{{ this.enterSystemAlertMessage }}</v-alert-title>
-        </v-alert>
-      </v-col>
-    </v-row>
       <v-row justify="center">
         <v-col cols="12" lg="4" md="4" sm="12">
           <v-card rounded>
@@ -58,23 +51,6 @@
                   id="registerField"
                   v-model="registerCode"
               ></v-text-field>
-              <div>
-                <div class="text-caption mb-8">
-                  Vyber maximálny počet aktívnych používateľov
-                </div>
-                <v-slider
-                    v-model="maxUsersSlider"
-                    min="1"
-                    max="20"
-                    step="1"
-                    color="orange"
-                    append-icon="mdi-account-group"
-                    show-ticks
-                    track-size="15"
-                    thumb-label="always"
-                ></v-slider>
-              </div>
-              <v-alert v-if="registerAlert" type="success">Účet vytvorený! Na prihlásenie používaj kód: <strong>{{this.enterSystemCode}}</strong></v-alert>
             </v-card-text>
             <v-card-actions>
               <v-btn
@@ -92,6 +68,9 @@
 </template>
 
 <script>
+import Swal from "sweetalert2";
+import { v4 as uuidv4 } from 'uuid';
+
 export default {
   name: "LoginPage",
   data() {
@@ -102,13 +81,10 @@ export default {
       registerCode: "",
       randomSuffix: "",
       registerRules: [v => v.length <= 20 || 'Najviac 20 znakov'],
-      registerAlert: false,
     }
   },
   methods: {
     createAccount(){
-      this.enterSystemAlertMessage = "";
-      this.registerAlert = false;
       if(this.registerCode && this.randomSuffix && this.maxUsersSlider){
         if(this.registerCode.length <= 20 && this.maxUsersSlider <= 20){
           this.$axios.post(this.$apiUrl + "api/cardhub/registerNewAccount/", {
@@ -116,46 +92,96 @@ export default {
             "maxUsersLimit":this.maxUsersSlider
           }).then(response => {
             if (response.data.status === 'error') {
-              console.log(response.data.message);
-              this.enterSystemAlertMessage = response.data.message;
+              Swal.fire({
+                title: 'Chyba',
+                html: 'Chyba: '+ response.data.message,
+                icon: "warning",
+                confirmButtonText: 'OK',
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  Swal.close();
+                }
+              });
             } else {
               this.enterSystemCode = this.registerCode+this.randomSuffix;
               this.registerAlert = true;
               this.registerCode = "";
               this.randomSuffix = "";
+              Swal.fire({
+                title: 'Úspech',
+                html: 'Účet vytvorený, prihlasujem...',
+                icon: "success",
+              });
+              this.enterSystem();
             }
           }).catch(err => {
-            this.enterSystemAlertMessage = err.response.data.message;
+            console.log(err.message);
+            Swal.fire({
+              title: 'Chyba',
+              html: 'Nie si pripojený k internetu!',
+              icon: "warning",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
           })
         }
       }
     },
     enterSystem() {
       if (this.enterSystemCode) {
-        this.enterSystemAlertMessage = "";
         this.$axios.get(this.$apiUrl + "api/cardhub/enterSystemWithCode/"+this.enterSystemCode.trim().split('#')[0] + "/"+this.enterSystemCode.trim().split('#')[1], {
           headers: {
             'Authorization': `SystemCode ${this.enterSystemCode.trim()}`
           }
         }).then(response => {
           if (response.data.status === 'error') {
-            console.log(response.data.message);
-            this.enterSystemAlertMessage = response.data.message;
+            Swal.fire({
+              title: 'Chyba',
+              html: 'Chyba: '+ response.data.message,
+              icon: "warning",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
           } else {
             localStorage.setItem('CardHub_LoginCode', this.enterSystemCode.trim());
             localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
             this.$router.push({path: '/moje-karty'});
           }
         }).catch(err => {
-          this.enterSystemAlertMessage = err.response.data.message;
+          console.log(err.message);
+          Swal.fire({
+            title: 'Chyba',
+            html: 'Nie si pripojený k internetu!',
+            icon: "warning",
+            confirmButtonText: 'OK',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              Swal.close();
+            }
+          });
         })
       } else {
-        this.enterSystemAlertMessage = "Prosím zadaj prihlasovací kód.";
+        Swal.fire({
+          title: 'Chyba',
+          html: 'Prosím zadaj prihlasovací kód.!',
+          icon: "warning",
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.close();
+          }
+        });
       }
     }
   },
   mounted() {
-    let uuid = self.crypto.randomUUID();
+    let uuid = uuidv4();
     this.randomSuffix = "#"+uuid.substring(9, 13).toUpperCase();
     if(this.$route.params.sharedLogin && this.$route.params.code){
       this.enterSystemCode = this.$route.params.code.trim();
