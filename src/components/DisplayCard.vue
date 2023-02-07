@@ -203,7 +203,10 @@ export default {
             }
           });
         }
-      }).catch(err => {
+      }).catch(async err => {
+        await this.addLogMessage('Axios edit card error = ' + err.message);
+        await this.setContext('DisplayCard.vue', 'editCard_method', 'string');
+        await this.recordException('Failed to update card! Internet issue.');
         console.log(err);
         Swal.fire({
           title: 'Chyba',
@@ -249,7 +252,14 @@ export default {
           }
         });
       } else {
-        openUrlInBrowser();
+        try {
+          openUrlInBrowser();
+        } catch (e) {
+          this.addLogMessage('capacitor/browser plugin error = ' + e.toString());
+          this.setContext('DisplayCard.vue', 'redirectToPage_method', 'string');
+          this.recordException('Failed to open web page in WebView!');
+        }
+
       }
     },
     addFavorite(uuid) {
@@ -316,7 +326,10 @@ export default {
             }
           });
         }
-      }).catch(err => {
+      }).catch(async err => {
+        await this.addLogMessage('Axios remove card error = ' + err.message);
+        await this.setContext('DisplayCard.vue', 'deleteCard_method', 'string');
+        await this.recordException('Failed to remove card from database! Internet issue.');
         Swal.fire({
           title: 'Chyba',
           html: 'Nepodarilo sa vymazať kartu! Pravdepodobne nie si pripojený k internetu. Karta nebola ovplyvnená. \n Chyba: ' + err.response.data.message,

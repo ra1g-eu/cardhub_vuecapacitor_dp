@@ -28,6 +28,7 @@
         <div v-if="this.cardsArray == 'Zatiaľ nemáš žiadne karty!'">
           <strong>Zatiaľ nemáš žiadne karty!</strong>
         </div>
+
         <v-col
             v-else
             v-for="(card, index) in filterCards"
@@ -38,6 +39,7 @@
             md="4"
             :key="index"
         >
+
           <v-card color="black" class="pa-0 ma-0">
             <v-card-title>{{ card.card_name }}
             </v-card-title>
@@ -64,7 +66,8 @@
     <v-btn
         variant="text"
         @click="filterFreq">
-      <v-icon :icon="filterFrequency == false ? 'mdi-order-numeric-ascending' : 'mdi-order-numeric-descending'" class="mb-1"></v-icon>
+      <v-icon :icon="filterFrequency === true ? 'mdi-order-numeric-ascending' : 'mdi-order-numeric-descending'"
+              class="mb-1"></v-icon>
       <span>Zoradenie</span>
     </v-btn>
     <v-btn
@@ -128,7 +131,6 @@
 <script>
 import Swal from "sweetalert2";
 import PullToRefresh from 'pulltorefreshjs';
-
 
 
 export default {
@@ -202,7 +204,7 @@ export default {
     filterFreq() {
       this.filterFrequency = !this.filterFrequency;
       this.snackbar = true;
-      this.snackBarText = this.filterFrequency ? 'Karty zoradené od najpoužívanejšej' : 'Karty zoradené od najmenej používanej';
+      this.snackBarText = this.filterFrequency ? 'Karty zoradené od najmenej používanej' : 'Karty zoradené od najpoužívanejšej';
     },
     filterFavorite() {
       this.filterShowFavorite = !this.filterShowFavorite;
@@ -259,8 +261,8 @@ export default {
                 Swal.close();
               }
             });
-            await this.addLogMessage('Axios logout = ' + err.message);
-            await this.setContext('showcards', 'logoutbutton', 'string');
+            await this.addLogMessage('Axios logout error = ' + err.message);
+            await this.setContext('ShowCards.vue', 'LogOut_Method', 'string');
             await this.recordException('No internet access when logging out! Axios crash.');
           });
         } else {
@@ -307,7 +309,7 @@ export default {
           }
           Swal.fire({
             title: 'Úspech!',
-            html: 'Karty obnovené! Počet nových kariet: ' + (response.data.message.length - this.cardsArray.length),
+            html: 'Karty úspešne obnovené!',
             icon: "success",
             confirmButtonText: 'OK',
           }).then((result) => {
@@ -317,7 +319,10 @@ export default {
           });
           this.cardsArray = JSON.parse(localStorage.getItem('CardHub_MyCards'));
         }
-      }).catch(err => {
+      }).catch(async err => {
+        await this.addLogMessage('Axios reload cards error = ' + err.message);
+        await this.setContext('ShowCards.vue', 'reloadCards_method', 'string');
+        await this.recordException('Failed to download cards! Internet issue.');
         Swal.fire({
           title: 'Chyba',
           html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + err.response.data.message,
@@ -352,7 +357,7 @@ export default {
         _this.reloadCards();
       }
     });
-    this.filterFrequency = (localStorage.getItem('CardHub_SelectedFilter') == 'filterFreqUp' ? true : false) ?? 'filterFreqUp';
+    this.filterFrequency = (localStorage.getItem('CardHub_SelectedFilter') === 'filterFreqUp' ? true : false) ?? 'filterFreqUp';
     this.filterShowFavorite = localStorage.getItem('CardHub_ShowFavorite') ?? false;
     if (this.filterShowFavorite === 'true') {
       this.filterShowFavorite = true;

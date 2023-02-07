@@ -1,5 +1,5 @@
 import 'vuetify/styles'
-import { createApp } from 'vue'
+import {createApp} from 'vue'
 import AppX from './App.vue'
 import {routes} from './router'
 import {createRouter, createWebHistory} from 'vue-router'
@@ -9,9 +9,9 @@ import {createVuetify} from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import {loadFonts} from "@/plugins/webfontloader"
-import { aliases, mdi } from 'vuetify/iconsets/mdi'
+import {aliases, mdi} from 'vuetify/iconsets/mdi'
 import '@mdi/font/css/materialdesignicons.css'
-import { App } from '@capacitor/app';
+import {App} from '@capacitor/app';
 import {BarcodeScanner} from "@capacitor-community/barcode-scanner";
 import {FirebaseCrashlytics} from "@capacitor-community/firebase-crashlytics";
 
@@ -22,7 +22,7 @@ const router = createRouter({
         if (savedPosition) {
             return savedPosition
         } else {
-            return { top: 0 }
+            return {top: 0}
         }
     },
     history: createWebHistory(),
@@ -33,7 +33,7 @@ let appV = createApp(AppX);
 
 appV.mixin({
     methods: {
-        async addLogMessage(message){
+        async addLogMessage(message) {
             await FirebaseCrashlytics.addLogMessage({
                 message: message
             });
@@ -51,7 +51,7 @@ appV.mixin({
             });
         },
         async forceCrash(message) {
-            await FirebaseCrashlytics.crash({ message: message });
+            await FirebaseCrashlytics.crash({message: message});
         },
     },
 });
@@ -82,8 +82,8 @@ appV.mount('#app');
 axios.defaults.headers.common['App-Request-Header'] = 'CardHub/REQ/CH/1.0.0';
 appV.config.globalProperties.$axios = axios;
 appV.config.globalProperties.$router = router;
-appV.config.globalProperties.$apiUrl = 'https://api.ra1g.eu/';
-//appV.config.globalProperties.$apiUrl = 'http://localhost:3000/';
+//appV.config.globalProperties.$apiUrl = 'https://api.ra1g.eu/';
+appV.config.globalProperties.$apiUrl = 'http://localhost:3000/';
 
 router.beforeEach((to) => {
     if (!localStorage.getItem('CardHub_LoginCode')) {
@@ -102,15 +102,15 @@ router.beforeEach((to) => {
     }
 });
 
-App.addListener('backButton', ({ canGoBack }) => {
-    if(window.location.pathname == '/nova-karta' && document.getElementById('htmlTag').hidden == true){
+App.addListener('backButton', ({canGoBack}) => {
+    if (window.location.pathname == '/nova-karta' && document.getElementById('htmlTag').hidden == true) {
         BarcodeScanner.showBackground();
         BarcodeScanner.stopScan();
         document.getElementById('htmlTag').hidden = false; //hide camera to show webview
         document.getElementById("scanBtn").style.display = 'none';
         document.getElementById("scanBtn").hidden = true;
     }
-    if(canGoBack){
+    if (canGoBack) {
         window.history.back();
     } else {
         App.exitApp();

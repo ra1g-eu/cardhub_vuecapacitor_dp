@@ -210,8 +210,11 @@ export default {
               }
             });
           })
-          .catch(err => {
+          .catch(async err => {
             console.log(err);
+            await this.addLogMessage('Html5Qrcode error = ' + err.toString());
+            await this.setContext('NewCard.vue', 'codeFromImageLoaded_method', 'string');
+            await this.recordException('Failed to read code from image!');
             Swal.fire({
               customClass: {
                 container: 'codeFromImageSwal'
@@ -235,67 +238,73 @@ export default {
       document.getElementById("scanBtn").hidden = true;
     },
     async startScan() {
-      const status = await BarcodeScanner.checkPermission({force: true});
+      try {
+        const status = await BarcodeScanner.checkPermission({force: true});
 
-      if (status.granted) {
-        document.getElementById('htmlTag').hidden = true; //hide webview to show camera
+        if (status.granted) {
+          document.getElementById('htmlTag').hidden = true; //hide webview to show camera
 
-        await BarcodeScanner.hideBackground();
-        document.getElementById("scanBtn").style.display = '';
-        document.getElementById("scanBtn").hidden = false;
+          await BarcodeScanner.hideBackground();
+          document.getElementById("scanBtn").style.display = '';
+          document.getElementById("scanBtn").hidden = false;
 
-        const result = await BarcodeScanner.startScan();
+          const result = await BarcodeScanner.startScan();
 
 
-        if (result.hasContent) {
-          if (result.content.length > 2 && /^[0-9]+$/.test(result.content)) {
-            document.getElementById('htmlTag').hidden = false; //hide camera to show webview
-            document.getElementById("scanBtn").style.display = 'none';
-            document.getElementById("scanBtn").hidden = true;
-            this.cardManualCode = result.content;
-            Swal.fire({
-              customClass: {
-                container: 'codeFromImageSwal'
-              },
-              title: 'Úspech',
-              html: 'Kód ' + this.cardManualCode + ' z karty bol načítaný! Prosím skontroluj kód. Ak je nesprávny, vlož ho manuálne alebo nahraj obrázok.',
-              icon: "success",
-              confirmButtonText: 'OK',
-            }).then((result) => {
-              if (result.isConfirmed) {
-                Swal.close();
-              }
-            });
-          } else {
-            Swal.fire({
-              customClass: {
-                container: 'codeFromImageSwal'
-              },
-              title: 'Chyba',
-              html: 'Kód ' + this.cardManualCode + ' z karty nie je správny! Vlož kód manuálne alebo nahraj obrázok.',
-              icon: "warning",
-              confirmButtonText: 'OK',
-            }).then((result) => {
-              if (result.isConfirmed) {
-                Swal.close();
-              }
-            });
+          if (result.hasContent) {
+            if (result.content.length > 2 && /^[0-9]+$/.test(result.content)) {
+              document.getElementById('htmlTag').hidden = false; //hide camera to show webview
+              document.getElementById("scanBtn").style.display = 'none';
+              document.getElementById("scanBtn").hidden = true;
+              this.cardManualCode = result.content;
+              Swal.fire({
+                customClass: {
+                  container: 'codeFromImageSwal'
+                },
+                title: 'Úspech',
+                html: 'Kód ' + this.cardManualCode + ' z karty bol načítaný! Prosím skontroluj kód. Ak je nesprávny, vlož ho manuálne alebo nahraj obrázok.',
+                icon: "success",
+                confirmButtonText: 'OK',
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  Swal.close();
+                }
+              });
+            } else {
+              Swal.fire({
+                customClass: {
+                  container: 'codeFromImageSwal'
+                },
+                title: 'Chyba',
+                html: 'Kód ' + this.cardManualCode + ' z karty nie je správny! Vlož kód manuálne alebo nahraj obrázok.',
+                icon: "warning",
+                confirmButtonText: 'OK',
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  Swal.close();
+                }
+              });
+            }
           }
+        } else {
+          Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
+            title: 'Chyba',
+            html: 'Povolenie na použitie fotoaparátu nebolo udelené!',
+            icon: "warning",
+            confirmButtonText: 'OK',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              Swal.close();
+            }
+          });
         }
-      } else {
-        Swal.fire({
-          customClass: {
-            container: 'codeFromImageSwal'
-          },
-          title: 'Chyba',
-          html: 'Povolenie na použitie fotoaparátu nebolo udelené!',
-          icon: "warning",
-          confirmButtonText: 'OK',
-        }).then((result) => {
-          if (result.isConfirmed) {
-            Swal.close();
-          }
-        });
+      } catch (e) {
+        await this.addLogMessage('Device camera error = ' + e.toString());
+        await this.setContext('NewCard.vue', 'startScan_method', 'string');
+        await this.recordException('Failed to scan QR code with device camera!');
       }
     },
     getShops() {
@@ -321,6 +330,7 @@ export default {
           localStorage.setItem('CardHub_CurrentShops', JSON.stringify(response.data.message));
           setTimeout(() => this.isLoading = false, Math.floor(Math.random() * 300));
           this.cardShops = JSON.parse(localStorage.getItem('CardHub_CurrentShops'));
+          this.isLoading = false;
           Swal.fire({
             title: 'Úspech',
             html: 'Obchody načítané!',
@@ -332,7 +342,10 @@ export default {
             }
           });
         }
-      }).catch(err => {
+      }).catch(async err => {
+        await this.addLogMessage('Axios getShops error = ' + err.message);
+        await this.setContext('NewCard.vue', 'getShops_method', 'string');
+        await this.recordException('Failed to download new shops from database! Internet issue.');
         this.isLoading = false;
         if (!localStorage.getItem('CardHub_CurrentShops')) {
           Swal.fire({
@@ -405,7 +418,10 @@ export default {
               }
             });
           }
-        }).catch(err => {
+        }).catch(async err => {
+          await this.addLogMessage('Axios add new card error = ' + err.message);
+          await this.setContext('NewCard.vue', 'addNewCard_method', 'string');
+          await this.recordException('Failed to upload new card to database! Internet issue.');
           console.log(err);
           this.cardSelectedCountry = '';
           this.cardImage = [];
@@ -449,6 +465,10 @@ export default {
         } else {
           localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
         }
+      }).catch(async err => {
+        await this.addLogMessage('Axios reload cards error = ' + err.message);
+        await this.setContext('NewCard.vue', 'reloadCards_method', 'string');
+        await this.recordException('Failed to reload cards from database! Internet issue.');
       });
     }
   },
