@@ -317,6 +317,9 @@ export default {
         if (response.data.status === 'error') {
           this.isLoading = false;
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Chyba',
             html: 'Nepodarilo sa načítať obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
             icon: "warning",
@@ -332,6 +335,9 @@ export default {
           this.cardShops = JSON.parse(localStorage.getItem('CardHub_CurrentShops'));
           this.isLoading = false;
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Úspech',
             html: 'Obchody načítané!',
             icon: "success",
@@ -343,12 +349,12 @@ export default {
           });
         }
       }).catch(async err => {
-        await this.addLogMessage('Axios getShops error = ' + err.message);
-        await this.setContext('NewCard.vue', 'getShops_method', 'string');
-        await this.recordException('Failed to download new shops from database! Internet issue.');
         this.isLoading = false;
         if (!localStorage.getItem('CardHub_CurrentShops')) {
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Chyba',
             html: 'Nepodarilo sa načítať nové obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
             icon: "warning",
@@ -359,6 +365,9 @@ export default {
             }
           });
         }
+        await this.addLogMessage('Axios getShops error = ' + err.message);
+        await this.setContext('NewCard.vue', 'getShops_method', 'string');
+        await this.recordException('Failed to download new shops from database! Internet issue.');
       });
     },
     addNewCard() {
@@ -391,6 +400,9 @@ export default {
         }).then(response => {
           if (response.data.status === 'error') {
             Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
               title: 'Chyba',
               html: 'Nepodarilo sa vytvoriť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: '+ response.data.message,
               icon: "warning",
@@ -408,6 +420,9 @@ export default {
             this.reloadCards();
             this.insertShopDetailsDialog = false;
             Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
               title: 'Úspech',
               html: 'Karta vytvorená!',
               icon: "success",
@@ -419,9 +434,6 @@ export default {
             });
           }
         }).catch(async err => {
-          await this.addLogMessage('Axios add new card error = ' + err.message);
-          await this.setContext('NewCard.vue', 'addNewCard_method', 'string');
-          await this.recordException('Failed to upload new card to database! Internet issue.');
           console.log(err);
           this.cardSelectedCountry = '';
           this.cardImage = [];
@@ -429,6 +441,9 @@ export default {
           this.addCardDialog = false;
           this.cardManualCode = '';
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Chyba',
             html: 'Nepodarilo sa vytvoriť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: '+ err.response.data.message,
             icon: "warning",
@@ -438,6 +453,9 @@ export default {
               this.$router.push({path: '/moje-karty'});
             }
           });
+          await this.addLogMessage('Axios add new card error = ' + err.message);
+          await this.setContext('NewCard.vue', 'addNewCard_method', 'string');
+          await this.recordException('Failed to upload new card to database! Internet issue.');
         });
       }
       this.cardSelectedCountry = '';
@@ -453,6 +471,9 @@ export default {
       }).then(response => {
         if (response.data.status === 'error') {
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Chyba',
             html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + response.data.message,
             icon: "warning",

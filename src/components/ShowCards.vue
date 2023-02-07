@@ -221,6 +221,9 @@ export default {
     },
     logOut() {
       Swal.fire({
+        customClass: {
+          container: 'codeFromImageSwal'
+        },
         title: 'Odhlásenie',
         html: 'Práve si prihlásený ako <strong>' + this.systemCodeName + '</strong><br>Naozaj sa chceš odhlásiť?',
         icon: "warning",
@@ -236,6 +239,9 @@ export default {
           }).then(response => {
             if (response.data.status === 'error') {
               Swal.fire({
+                customClass: {
+                  container: 'codeFromImageSwal'
+                },
                 title: 'Chyba',
                 html: 'Nepodarilo sa odhlásiť! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
                 icon: "warning",
@@ -252,6 +258,9 @@ export default {
           }).catch(async err => {
             console.log(err.message);
             Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
               title: 'Chyba',
               html: 'Nepodarilo sa odhlásiť! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.message,
               icon: "warning",
@@ -289,6 +298,9 @@ export default {
       }).then(response => {
         if (response.data.status === 'error') {
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Chyba',
             html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + response.data.message,
             icon: "warning",
@@ -308,6 +320,9 @@ export default {
             localStorage.setItem('CardHub_MyCards', JSON.stringify(result2));
           }
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Úspech!',
             html: 'Karty úspešne obnovené!',
             icon: "success",
@@ -320,10 +335,10 @@ export default {
           this.cardsArray = JSON.parse(localStorage.getItem('CardHub_MyCards'));
         }
       }).catch(async err => {
-        await this.addLogMessage('Axios reload cards error = ' + err.message);
-        await this.setContext('ShowCards.vue', 'reloadCards_method', 'string');
-        await this.recordException('Failed to download cards! Internet issue.');
         Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
           title: 'Chyba',
           html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + err.response.data.message,
           icon: "warning",
@@ -333,6 +348,9 @@ export default {
             Swal.close();
           }
         });
+        await this.addLogMessage('Axios reload cards error = ' + err.message);
+        await this.setContext('ShowCards.vue', 'reloadCards_method', 'string');
+        await this.recordException('Failed to download cards! Internet issue.');
       });
       this.showLoading = false;
     }

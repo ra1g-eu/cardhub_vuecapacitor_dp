@@ -182,6 +182,9 @@ export default {
       }).then(response => {
         if (response.data.status === 'error') {
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Chyba',
             html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
             icon: "warning",
@@ -193,6 +196,9 @@ export default {
           });
         } else {
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Úspech',
             html: 'Karta upravená! Aktualizuj zoznam kariet.',
             icon: "success",
@@ -209,6 +215,9 @@ export default {
         await this.recordException('Failed to update card! Internet issue.');
         console.log(err);
         Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
           title: 'Chyba',
           html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
           icon: "warning",
@@ -223,6 +232,9 @@ export default {
     showNotes() {
       if (this.cardNotes.length <= 1) {
         Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
           title: 'Pozor',
           html: 'Pre túto kartu nie sú vytvorené žiadne poznámky',
           icon: "warning",
@@ -242,6 +254,9 @@ export default {
       };
       if (this.cardShopUrl == 'no_url') {
         Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
           title: 'Pozor',
           html: 'Pre tento obchod nie je priradená žiadna webstránka!',
           icon: "warning",
@@ -305,6 +320,9 @@ export default {
       }).then(response => {
         if (response.data.status === 'error') {
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Chyba',
             html: 'Nepodarilo sa vymazať kartu! Pravdepodobne nie si pripojený k internetu. Karta nebola ovplyvnená. \n Chyba: ' + response.data.message,
             icon: "warning",
@@ -316,6 +334,9 @@ export default {
           });
         } else {
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Úspech!',
             html: 'Karta vymazaná',
             icon: "success",
@@ -331,6 +352,9 @@ export default {
         await this.setContext('DisplayCard.vue', 'deleteCard_method', 'string');
         await this.recordException('Failed to remove card from database! Internet issue.');
         Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
           title: 'Chyba',
           html: 'Nepodarilo sa vymazať kartu! Pravdepodobne nie si pripojený k internetu. Karta nebola ovplyvnená. \n Chyba: ' + err.response.data.message,
           icon: "warning",

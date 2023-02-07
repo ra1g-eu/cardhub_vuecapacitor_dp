@@ -98,6 +98,9 @@ export default {
           }).then(response => {
             if (response.data.status === 'error') {
               Swal.fire({
+                customClass: {
+                  container: 'codeFromImageSwal'
+                },
                 title: 'Chyba',
                 html: 'Chyba: ' + response.data.message,
                 icon: "warning",
@@ -113,6 +116,9 @@ export default {
               this.registerCode = "";
               this.randomSuffix = "";
               Swal.fire({
+                customClass: {
+                  container: 'codeFromImageSwal'
+                },
                 title: 'Úspech',
                 html: 'Účet vytvorený, prihlasujem...',
                 icon: "success",
@@ -125,6 +131,9 @@ export default {
             await this.setContext('LoginPage.vue', 'createAccount_method', 'string');
             await this.recordException('No internet access when registering! Axios crash.');
             Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
               title: 'Chyba',
               html: 'Nie si pripojený k internetu!',
               icon: "warning",
@@ -147,6 +156,9 @@ export default {
         }).then(response => {
           if (response.data.status === 'error') {
             Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
               title: 'Chyba',
               html: 'Chyba: ' + response.data.message,
               icon: "warning",
@@ -167,6 +179,9 @@ export default {
           await this.setContext('LoginPage.vue', 'enterSystem_method', 'string');
           await this.recordException('No internet access when logging in! Axios crash.');
           Swal.fire({
+            customClass: {
+              container: 'codeFromImageSwal'
+            },
             title: 'Chyba',
             html: 'Nie si pripojený k internetu!',
             icon: "warning",
@@ -179,6 +194,9 @@ export default {
         });
       } else {
         Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
           title: 'Chyba',
           html: 'Prosím zadaj prihlasovací kód.!',
           icon: "warning",
