@@ -18,7 +18,7 @@
                       class="justify-center"></qrcode-vue>
         </div>
         <div v-else>
-          <vue-barcode class="justify-center" :options="{ displayValue: true, width: 2.5, height: 150 }"
+          <vue-barcode class="justify-center" :options="{ displayValue: true, width: 2.3, height: 150 }"
                        tag="svg" :value="this.barcodeCodeToGen">
             Nastala chyba pri generovaní čiarového kódu!
           </vue-barcode>
@@ -142,6 +142,7 @@ import VueBarcode from '@chenfengyuan/vue-barcode';
 import QrcodeVue from 'qrcode.vue';
 import Swal from "sweetalert2";
 import {Browser} from '@capacitor/browser';
+import {FirebasePerformance} from "@capacitor-firebase/performance";
 
 export default {
   name: "DisplayCard",
@@ -169,24 +170,69 @@ export default {
     }
   },
   methods: {
-    editCard() {
-      this.$axios.post(this.$apiUrl + "api/cardhub/editCard", {
-        "cardUuid": this.cardUuid,
-        "cardDesc": this.cardEditDesc,
-        "cardManualCode": this.cardEditCode
-      }, {
-        headers: {
-          'Authorization': `SystemCode ${this.systemCodeName}`,
-          'Content-Type': 'application/json'
-        },
-      }).then(response => {
-        if (response.data.status === 'error') {
+    async editCard() {
+      try {
+        await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/editCard'});
+        await this.$axios.post(this.$apiUrl + "api/cardhub/editCard", {
+          "cardUuid": this.cardUuid,
+          "cardDesc": this.cardEditDesc,
+          "cardManualCode": this.cardEditCode === '' ? this.barcodeCodeToGen : this.cardEditCode
+        }, {
+          headers: {
+            'Authorization': `SystemCode ${this.systemCodeName}`,
+            'Content-Type': 'application/json'
+          },
+        }).then(async response => {
+          if (response.data.status === 'error') {
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Chyba',
+              html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
+              icon: "warning",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
+          } else {
+            this.cards = JSON.parse(localStorage.getItem('CardHub_MyCards'));
+            await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/editCard/forLoop_saveEditedCard'});
+            for (let i = 0, len = this.cards.length; i < len; i++) {
+              if (this.cards[i].card_uuid == this.cardUuid) {
+                this.cards[i].manualCode = this.cardEditCode === '' ? this.barcodeCodeToGen : this.cardEditCode;
+                this.cards[i].cardNotes = this.cardEditDesc;
+              }
+            }
+            await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/editCard/forLoop_saveEditedCard'});
+            localStorage.setItem('CardHub_MyCards', JSON.stringify(this.cards));
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Úspech',
+              html: 'Karta upravená! Aktualizuj zoznam kariet.',
+              icon: "success",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
+          }
+        }).catch(async err => {
+          await this.addLogMessage('Axios edit card error = ' + err.message);
+          await this.setContext('DisplayCard.vue', 'editCard_method', 'string');
+          await this.recordException('Failed to update card! Internet issue.');
+          console.log(err);
           Swal.fire({
             customClass: {
               container: 'codeFromImageSwal'
             },
             title: 'Chyba',
-            html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
+            html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
             icon: "warning",
             confirmButtonText: 'OK',
           }).then((result) => {
@@ -194,40 +240,26 @@ export default {
               Swal.close();
             }
           });
-        } else {
-          Swal.fire({
-            customClass: {
-              container: 'codeFromImageSwal'
-            },
-            title: 'Úspech',
-            html: 'Karta upravená! Aktualizuj zoznam kariet.',
-            icon: "success",
-            confirmButtonText: 'OK',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              Swal.close();
-            }
-          });
-        }
-      }).catch(async err => {
-        await this.addLogMessage('Axios edit card error = ' + err.message);
-        await this.setContext('DisplayCard.vue', 'editCard_method', 'string');
-        await this.recordException('Failed to update card! Internet issue.');
-        console.log(err);
+        });
+        await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/editCard'});
+      } catch (e) {
         Swal.fire({
           customClass: {
             container: 'codeFromImageSwal'
           },
           title: 'Chyba',
-          html: 'Nepodarilo sa upraviť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
-          icon: "warning",
+          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          icon: "error",
           confirmButtonText: 'OK',
         }).then((result) => {
           if (result.isConfirmed) {
             Swal.close();
           }
         });
-      });
+        await this.addLogMessage('Edit card error TryCatch = ' + e);
+        await this.setContext('DisplayCard.vue', 'editCard_method', 'string');
+        await this.recordException('Editing card failed in TryCatch. Possbile API issue.');
+      }
     },
     showNotes() {
       if (this.cardNotes.length <= 1) {
@@ -250,7 +282,9 @@ export default {
     },
     redirectToPage() {
       const openUrlInBrowser = async () => {
+        await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/openUrlInBrowser'});
         await Browser.open({url: this.cardShopUrl});
+        await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/openUrlInBrowser'});
       };
       if (this.cardShopUrl == 'no_url') {
         Swal.fire({
@@ -270,15 +304,17 @@ export default {
         try {
           openUrlInBrowser();
         } catch (e) {
-          this.addLogMessage('capacitor/browser plugin error = ' + e.toString());
+          this.addLogMessage('capacitor/browser plugin error = ' + e);
           this.setContext('DisplayCard.vue', 'redirectToPage_method', 'string');
           this.recordException('Failed to open web page in WebView!');
         }
 
       }
     },
-    addFavorite(uuid) {
+    async addFavorite(uuid) {
+      await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/addFavorite'});
       this.cardsArray = JSON.parse(localStorage.getItem('CardHub_MyCards'));
+      await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/addFavorite/forLoop_updateCardFavorite'});
       for (let i = 0, len = this.cardsArray.length; i < len; i++) {
         if (this.cardsArray[i].card_uuid == uuid) {
           if (this.cardsArray[i].isFavorite == true) {
@@ -290,7 +326,9 @@ export default {
           }
         }
       }
+      await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/addFavorite/forLoop_updateCardFavorite'});
       localStorage.setItem('CardHub_MyCards', JSON.stringify(this.cardsArray));
+      await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/addFavorite'});
     },
     confirmCardDelete() {
       this.cardEditDialog = false;
@@ -312,19 +350,50 @@ export default {
         }
       });
     },
-    deleteCard() {
-      this.$axios.get(this.$apiUrl + "api/cardhub/removeCardWithCode/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1] + "/" + this.cardUuid, {
-        headers: {
-          'Authorization': `SystemCode ${this.systemCodeName}`
-        }
-      }).then(response => {
-        if (response.data.status === 'error') {
+    async deleteCard() {
+      try {
+        await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/deleteCard'});
+        await this.$axios.get(this.$apiUrl + "api/cardhub/removeCardWithCode/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1] + "/" + this.cardUuid, {
+          headers: {
+            'Authorization': `SystemCode ${this.systemCodeName}`
+          }
+        }).then(response => {
+          if (response.data.status === 'error') {
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Chyba',
+              html: 'Nepodarilo sa vymazať kartu! Pravdepodobne nie si pripojený k internetu. Karta nebola ovplyvnená. \n Chyba: ' + response.data.message,
+              icon: "warning",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
+          } else {
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Úspech!',
+              html: 'Karta vymazaná',
+              icon: "success",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                this.$router.push({path: '/moje-karty'});
+              }
+            });
+          }
+        }).catch(async err => {
           Swal.fire({
             customClass: {
               container: 'codeFromImageSwal'
             },
             title: 'Chyba',
-            html: 'Nepodarilo sa vymazať kartu! Pravdepodobne nie si pripojený k internetu. Karta nebola ovplyvnená. \n Chyba: ' + response.data.message,
+            html: 'Nepodarilo sa vymazať kartu! Pravdepodobne nie si pripojený k internetu. Karta nebola ovplyvnená. \n Chyba: ' + err.response.data.message,
             icon: "warning",
             confirmButtonText: 'OK',
           }).then((result) => {
@@ -332,47 +401,39 @@ export default {
               Swal.close();
             }
           });
-        } else {
-          Swal.fire({
-            customClass: {
-              container: 'codeFromImageSwal'
-            },
-            title: 'Úspech!',
-            html: 'Karta vymazaná',
-            icon: "success",
-            confirmButtonText: 'OK',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              this.$router.push({path: '/moje-karty'});
-            }
-          });
-        }
-      }).catch(async err => {
-        await this.addLogMessage('Axios remove card error = ' + err.message);
-        await this.setContext('DisplayCard.vue', 'deleteCard_method', 'string');
-        await this.recordException('Failed to remove card from database! Internet issue.');
+          await this.addLogMessage('Axios remove card error = ' + err.message);
+          await this.setContext('DisplayCard.vue', 'deleteCard_method', 'string');
+          await this.recordException('Failed to remove card from database! Internet issue.');
+        });
+        await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/deleteCard'});
+      } catch (e) {
         Swal.fire({
           customClass: {
             container: 'codeFromImageSwal'
           },
           title: 'Chyba',
-          html: 'Nepodarilo sa vymazať kartu! Pravdepodobne nie si pripojený k internetu. Karta nebola ovplyvnená. \n Chyba: ' + err.response.data.message,
-          icon: "warning",
+          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          icon: "error",
           confirmButtonText: 'OK',
         }).then((result) => {
           if (result.isConfirmed) {
             Swal.close();
           }
         });
-      });
+        await this.addLogMessage('Remove card TryCatch error = ' + e);
+        await this.setContext('DisplayCard.vue', 'deleteCard_method', 'string');
+        await this.recordException('Failed to remove card in TryCatch. Possible API error.');
+      }
     },
   },
-  created() {
+  async created() {
+    await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/created'});
     document
         .getElementsByTagName('meta')
         .namedItem('viewport')
         .setAttribute('content', 'width=device-width,initial-scale=1.0,maximum-scale=2.5');
     this.cards = JSON.parse(localStorage.getItem('CardHub_MyCards'));
+    await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/created/forLoop_loadCard'});
     for (let i = 0, len = this.cards.length; i < len; i++) {
       if (this.cards[i].card_uuid == this.$route.params.id) {
         this.barcodeCodeToGen = this.cards[i].manualCode;
@@ -386,7 +447,9 @@ export default {
         this.cards[i].numberOfUses = this.cards[i].numberOfUses == null ? 1 : parseInt(this.cards[i].numberOfUses) + 1;
       }
     }
+    await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/created/forLoop_loadCard'});
     localStorage.setItem('CardHub_MyCards', JSON.stringify(this.cards));
+    await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/created'});
   },
   mounted() {
     this.systemCodeName = localStorage.getItem('CardHub_LoginCode');

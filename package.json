@@ -10,6 +10,7 @@
   "dependencies": {
     "@capacitor-community/barcode-scanner": "^2.1.1",
     "@capacitor-community/firebase-crashlytics": "^1.3.0",
+    "@capacitor-firebase/performance": "^0.5.1",
     "@capacitor/android": "^3.6.0",
     "@capacitor/app": "^1.1.1",
     "@capacitor/browser": "^1.0.7",

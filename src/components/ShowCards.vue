@@ -131,6 +131,7 @@
 <script>
 import Swal from "sweetalert2";
 import PullToRefresh from 'pulltorefreshjs';
+import {FirebasePerformance} from "@capacitor-firebase/performance";
 
 
 export default {
@@ -201,16 +202,21 @@ export default {
     }
   },
   methods: {
-    filterFreq() {
+    async filterFreq() {
+      await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/filterFreq'});
       this.filterFrequency = !this.filterFrequency;
       this.snackbar = true;
       this.snackBarText = this.filterFrequency ? 'Karty zoradené od najmenej používanej' : 'Karty zoradené od najpoužívanejšej';
+      await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/filterFreq'});
     },
-    filterFavorite() {
+    async filterFavorite() {
+      await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/filterFavorite'});
       this.filterShowFavorite = !this.filterShowFavorite;
       localStorage.setItem('CardHub_ShowFavorite', this.filterShowFavorite);
+      await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/filterFavorite'});
     },
-    filterByCountry() {
+    async filterByCountry() {
+      await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/filterByCountry'});
       if (this.selectedCountry === 'Česko') {
         this.selectedCountry = 'Slovensko'
         localStorage.setItem('CardHub_SelectedCountry', this.selectedCountry);
@@ -218,32 +224,54 @@ export default {
         this.selectedCountry = 'Česko'
         localStorage.setItem('CardHub_SelectedCountry', this.selectedCountry);
       }
+      await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/filterByCountry'});
     },
-    logOut() {
-      Swal.fire({
-        customClass: {
-          container: 'codeFromImageSwal'
-        },
-        title: 'Odhlásenie',
-        html: 'Práve si prihlásený ako <strong>' + this.systemCodeName + '</strong><br>Naozaj sa chceš odhlásiť?',
-        icon: "warning",
-        showCancelButton: true,
-        cancelButtonText: 'Nie',
-        confirmButtonText: 'OK',
-      }).then((result) => {
-        if (result.isConfirmed) {
-          this.$axios.get(this.$apiUrl + "api/cardhub/logOut/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1], {
-            headers: {
-              'Authorization': `SystemCode ${this.systemCodeName}`
-            }
-          }).then(response => {
-            if (response.data.status === 'error') {
+    async logOut() {
+      try {
+        Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
+          title: 'Odhlásenie',
+          html: 'Práve si prihlásený ako <strong>' + this.systemCodeName + '</strong><br>Naozaj sa chceš odhlásiť?',
+          icon: "warning",
+          showCancelButton: true,
+          cancelButtonText: 'Nie',
+          confirmButtonText: 'OK',
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/logOut'});
+            await this.$axios.get(this.$apiUrl + "api/cardhub/logOut/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1], {
+              headers: {
+                'Authorization': `SystemCode ${this.systemCodeName}`
+              }
+            }).then(response => {
+              if (response.data.status === 'error') {
+                Swal.fire({
+                  customClass: {
+                    container: 'codeFromImageSwal'
+                  },
+                  title: 'Chyba',
+                  html: 'Nepodarilo sa odhlásiť! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
+                  icon: "warning",
+                  confirmButtonText: 'OK',
+                }).then((result) => {
+                  if (result.isConfirmed) {
+                    Swal.close();
+                  }
+                });
+              } else {
+                localStorage.clear();
+                this.$router.push({path: '/'});
+              }
+            }).catch(async err => {
+              console.log(err.message);
               Swal.fire({
                 customClass: {
                   container: 'codeFromImageSwal'
                 },
                 title: 'Chyba',
-                html: 'Nepodarilo sa odhlásiť! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
+                html: 'Nepodarilo sa odhlásiť! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.message,
                 icon: "warning",
                 confirmButtonText: 'OK',
               }).then((result) => {
@@ -251,33 +279,33 @@ export default {
                   Swal.close();
                 }
               });
-            } else {
-              localStorage.clear();
-              this.$router.push({path: '/'});
-            }
-          }).catch(async err => {
-            console.log(err.message);
-            Swal.fire({
-              customClass: {
-                container: 'codeFromImageSwal'
-              },
-              title: 'Chyba',
-              html: 'Nepodarilo sa odhlásiť! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.message,
-              icon: "warning",
-              confirmButtonText: 'OK',
-            }).then((result) => {
-              if (result.isConfirmed) {
-                Swal.close();
-              }
+              await this.addLogMessage('Axios logout error = ' + err.message);
+              await this.setContext('ShowCards.vue', 'LogOut_Method', 'string');
+              await this.recordException('No internet access when logging out! Axios crash.');
             });
-            await this.addLogMessage('Axios logout error = ' + err.message);
-            await this.setContext('ShowCards.vue', 'LogOut_Method', 'string');
-            await this.recordException('No internet access when logging out! Axios crash.');
-          });
-        } else {
-          Swal.close();
-        }
-      });
+            await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/logOut'});
+          } else {
+            Swal.close();
+          }
+        });
+      } catch (e) {
+        Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
+          title: 'Chyba',
+          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          icon: "error",
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.close();
+          }
+        });
+        await this.addLogMessage('Logout TryCatch error = ' + e);
+        await this.setContext('ShowCards.vue', 'LogOut_Method', 'string');
+        await this.recordException('Logout unexpected error caught in TryCatch.');
+      }
     },
     showOverlay(url, code) {
       this.barcodeCodeToGen = code;
@@ -290,19 +318,90 @@ export default {
       })
       return mainObject
     },
-    reloadCards() {
-      this.$axios.get(this.$apiUrl + "api/cardhub/getCards/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1], {
-        headers: {
-          'Authorization': `SystemCode ${this.systemCodeName}`
-        }
-      }).then(response => {
-        if (response.data.status === 'error') {
+    async getBase64Image(imgUrl, callback) {
+      let img = new Image();
+      img.onload = function(){
+        let canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        let ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        let dataURL = canvas.toDataURL("image/png");
+        dataURL = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+        callback(dataURL); // the base64 string
+      };
+      img.setAttribute('crossorigin', 'anonymous');
+      img.src = imgUrl;
+    },
+    async reloadCards() {
+      try {
+        await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards'});
+        await this.$axios.get(this.$apiUrl + "api/cardhub/getCards/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1], {
+          headers: {
+            'Authorization': `SystemCode ${this.systemCodeName}`
+          }
+        }).then(async response => {
+          if (response.data.status === 'error') {
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Chyba',
+              html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + response.data.message,
+              icon: "warning",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
+          } else {
+            if (!localStorage.getItem('CardHub_MyCards')) {
+              await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards/saveCardsForFirstTime'});
+              localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
+              await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards/saveCardsForFirstTime'});
+            } else {
+              await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards/parseCardsInJSON'});
+              const parsed = Object.assign([], JSON.parse(localStorage.getItem('CardHub_MyCards')));
+              const result = Object.assign([], response.data.message);
+              let result2 = parsed.map((item, i) => Object.assign({}, item, result[i]));
+              localStorage.setItem('CardHub_MyCards', JSON.stringify(result2));
+              await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards/parseCardsInJSON'});
+            }
+
+            let cards = JSON.parse(localStorage.getItem('CardHub_MyCards'));
+            await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards/ConvertImageToBase64'});
+            for (let i = 0; i < cards.length; i++) {
+              await this.getBase64Image(cards[i].shopLogo, function (base64image) {
+                cards[i].shopLogo = base64image;
+              });
+            }
+            await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards/ConvertImageToBase64'});
+
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Úspech!',
+              html: 'Karty úspešne obnovené!',
+              icon: "success",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
+            await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards/loadSavedCards'});
+            this.cardsArray = JSON.parse(localStorage.getItem('CardHub_MyCards'));
+            await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards/loadSavedCards'});
+          }
+        }).catch(async err => {
           Swal.fire({
             customClass: {
               container: 'codeFromImageSwal'
             },
             title: 'Chyba',
-            html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + response.data.message,
+            html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + err.response.data.message,
             icon: "warning",
             confirmButtonText: 'OK',
           }).then((result) => {
@@ -310,58 +409,40 @@ export default {
               Swal.close();
             }
           });
-        } else {
-          if (!localStorage.getItem('CardHub_MyCards')) {
-            localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
-          } else {
-            const parsed = Object.assign([], JSON.parse(localStorage.getItem('CardHub_MyCards')));
-            const result = Object.assign([], response.data.message);
-            let result2 = parsed.map((item, i) => Object.assign({}, item, result[i]));
-            localStorage.setItem('CardHub_MyCards', JSON.stringify(result2));
-          }
-          Swal.fire({
-            customClass: {
-              container: 'codeFromImageSwal'
-            },
-            title: 'Úspech!',
-            html: 'Karty úspešne obnovené!',
-            icon: "success",
-            confirmButtonText: 'OK',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              Swal.close();
-            }
-          });
-          this.cardsArray = JSON.parse(localStorage.getItem('CardHub_MyCards'));
-        }
-      }).catch(async err => {
+          await this.addLogMessage('Axios reload cards error = ' + err.message);
+          await this.setContext('ShowCards.vue', 'reloadCards_method', 'string');
+          await this.recordException('Failed to download cards! Internet issue.');
+        });
+        this.showLoading = false;
+        await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards'});
+      } catch (e) {
         Swal.fire({
           customClass: {
             container: 'codeFromImageSwal'
           },
           title: 'Chyba',
-          html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + err.response.data.message,
-          icon: "warning",
+          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          icon: "error",
           confirmButtonText: 'OK',
         }).then((result) => {
           if (result.isConfirmed) {
             Swal.close();
           }
         });
-        await this.addLogMessage('Axios reload cards error = ' + err.message);
+        await this.addLogMessage('Reload cards TryCatch error = ' + e);
         await this.setContext('ShowCards.vue', 'reloadCards_method', 'string');
-        await this.recordException('Failed to download cards! Internet issue.');
-      });
-      this.showLoading = false;
+        await this.recordException('Error occured in TryCatch block!');
+      }
     }
   },
-  created() {
+  async created() {
+    await FirebasePerformance.stopTrace({traceName: 'LoginPage.vue/ShowCards.vue/transitionTime'});
     document
         .getElementsByTagName('meta')
         .namedItem('viewport')
         .setAttribute('content', 'width=device-width,initial-scale=1.0,maximum-scale=1.0');
   },
-  mounted() {
+  async mounted() {
     let _this = this;
     PullToRefresh.init({
       instructionsPullToRefresh: 'Potiahni dole pre obnovu kariet',
@@ -375,6 +456,8 @@ export default {
         _this.reloadCards();
       }
     });
+
+    await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/mounted/loadFilters'});
     this.filterFrequency = (localStorage.getItem('CardHub_SelectedFilter') === 'filterFreqUp' ? true : false) ?? 'filterFreqUp';
     this.filterShowFavorite = localStorage.getItem('CardHub_ShowFavorite') ?? false;
     if (this.filterShowFavorite === 'true') {
@@ -383,9 +466,15 @@ export default {
     if (this.filterShowFavorite === 'false') {
       this.filterShowFavorite = false;
     }
+    await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/mounted/loadFilters'});
+
     this.systemCodeName = localStorage.getItem('CardHub_LoginCode');
     this.selectedCountry = localStorage.getItem('CardHub_SelectedCountry') ?? 'Slovensko';
+
+    await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/mounted/parseCardsFromLocalStorage'});
     this.cardsArray = JSON.parse(localStorage.getItem('CardHub_MyCards'));
+    await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/mounted/parseCardsFromLocalStorage'});
+
   },
   beforeUnmount() {
     PullToRefresh.destroyAll();

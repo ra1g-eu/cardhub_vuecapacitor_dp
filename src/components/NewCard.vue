@@ -144,6 +144,7 @@ import {BarcodeScanner} from "@capacitor-community/barcode-scanner";
 import Swal from "sweetalert2";
 import {Html5Qrcode} from "html5-qrcode";
 import PullToRefresh from 'pulltorefreshjs';
+import {FirebasePerformance} from "@capacitor-firebase/performance";
 
 export default {
   name: "NewCard",
@@ -191,44 +192,65 @@ export default {
     //console.log(this.cardShops);
   },
   methods: {
-    codeFromImageLoaded(){
-      const html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.scanFile(this.cardImage[0], false)
-          .then(decodedText => {
-            this.cardManualCode = decodedText;
-            Swal.fire({
-              customClass: {
-                container: 'codeFromImageSwal'
-              },
-              title: 'Úspech',
-              html: 'Kód ' + decodedText + ' z obrázku bol načítaný! Prosím skontroluj kód. Ak je nesprávny, vlož ho manuálne alebo ho naskenuj cez kameru.',
-              icon: "success",
-              confirmButtonText: 'OK',
-            }).then((result) => {
-              if (result.isConfirmed) {
-                Swal.close();
-              }
+    async codeFromImageLoaded() {
+      try {
+        await FirebasePerformance.startTrace({traceName: 'NewCard.vue/codeFromImageLoaded'});
+        const html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.scanFile(this.cardImage[0], false)
+            .then(decodedText => {
+              this.cardManualCode = decodedText;
+              Swal.fire({
+                customClass: {
+                  container: 'codeFromImageSwal'
+                },
+                title: 'Úspech',
+                html: 'Kód ' + decodedText + ' z obrázku bol načítaný! Prosím skontroluj kód. Ak je nesprávny, vlož ho manuálne alebo ho naskenuj cez kameru.',
+                icon: "success",
+                confirmButtonText: 'OK',
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  Swal.close();
+                }
+              });
+            })
+            .catch(async err => {
+              Swal.fire({
+                customClass: {
+                  container: 'codeFromImageSwal'
+                },
+                title: 'Pozor',
+                html: 'Problém s naskenovaním kódu. Vlož kód manuálne alebo opakuj akciu.',
+                icon: "warning",
+                confirmButtonText: 'OK',
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  Swal.close();
+                }
+              });
+              console.log(err);
+              await this.addLogMessage('Html5Qrcode error = ' + err.toString());
+              await this.setContext('NewCard.vue', 'codeFromImageLoaded_method', 'string');
+              await this.recordException('Failed to read code from image!');
             });
-          })
-          .catch(async err => {
-            console.log(err);
-            await this.addLogMessage('Html5Qrcode error = ' + err.toString());
-            await this.setContext('NewCard.vue', 'codeFromImageLoaded_method', 'string');
-            await this.recordException('Failed to read code from image!');
-            Swal.fire({
-              customClass: {
-                container: 'codeFromImageSwal'
-              },
-              title: 'Pozor',
-              html: 'Problém s naskenovaním kódu. Vlož kód manuálne alebo opakuj akciu.',
-              icon: "warning",
-              confirmButtonText: 'OK',
-            }).then((result) => {
-              if (result.isConfirmed) {
-                Swal.close();
-              }
-            });
-          });
+        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/codeFromImageLoaded'});
+      } catch (e) {
+        Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
+          title: 'Chyba',
+          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          icon: "error",
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.close();
+          }
+        });
+        await this.addLogMessage('Html5Qrcode TryCatch error = ' + e);
+        await this.setContext('NewCard.vue', 'codeFromImageLoaded_method', 'string');
+        await this.recordException('Html5Qrcode method failed in TryCatch block.');
+      }
     },
     stopScan() {
       BarcodeScanner.showBackground();
@@ -242,6 +264,7 @@ export default {
         const status = await BarcodeScanner.checkPermission({force: true});
 
         if (status.granted) {
+          await FirebasePerformance.startTrace({traceName: 'NewCard.vue/startScan/permissionGrantedStart'});
           document.getElementById('htmlTag').hidden = true; //hide webview to show camera
 
           await BarcodeScanner.hideBackground();
@@ -249,9 +272,10 @@ export default {
           document.getElementById("scanBtn").hidden = false;
 
           const result = await BarcodeScanner.startScan();
-
+          await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/startScan/permissionGrantedStart'});
 
           if (result.hasContent) {
+            await FirebasePerformance.startTrace({traceName: 'NewCard.vue/startScan/codeFound'});
             if (result.content.length > 2 && /^[0-9]+$/.test(result.content)) {
               document.getElementById('htmlTag').hidden = false; //hide camera to show webview
               document.getElementById("scanBtn").style.display = 'none';
@@ -285,6 +309,7 @@ export default {
                 }
               });
             }
+            await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/startScan/codeFound'});
           }
         } else {
           Swal.fire({
@@ -307,80 +332,131 @@ export default {
         await this.recordException('Failed to scan QR code with device camera!');
       }
     },
-    getShops() {
-      this.isLoading = true;
-      this.$axios.get(this.$apiUrl + "api/cardhub/getShops/", {
-        headers: {
-          'Authorization': `SystemCode ${this.systemCodeName}`
-        }
-      }).then(response => {
-        if (response.data.status === 'error') {
-          this.isLoading = false;
-          Swal.fire({
-            customClass: {
-              container: 'codeFromImageSwal'
-            },
-            title: 'Chyba',
-            html: 'Nepodarilo sa načítať obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
-            icon: "warning",
-            confirmButtonText: 'OK',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              this.$router.push({path: '/moje-karty'});
-            }
-          });
-        } else {
-          localStorage.setItem('CardHub_CurrentShops', JSON.stringify(response.data.message));
-          setTimeout(() => this.isLoading = false, Math.floor(Math.random() * 300));
-          this.cardShops = JSON.parse(localStorage.getItem('CardHub_CurrentShops'));
-          this.isLoading = false;
-          Swal.fire({
-            customClass: {
-              container: 'codeFromImageSwal'
-            },
-            title: 'Úspech',
-            html: 'Obchody načítané!',
-            icon: "success",
-            confirmButtonText: 'OK',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              Swal.close();
-            }
-          });
-        }
-      }).catch(async err => {
-        this.isLoading = false;
-        if (!localStorage.getItem('CardHub_CurrentShops')) {
-          Swal.fire({
-            customClass: {
-              container: 'codeFromImageSwal'
-            },
-            title: 'Chyba',
-            html: 'Nepodarilo sa načítať nové obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
-            icon: "warning",
-            confirmButtonText: 'OK',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              this.$router.push({path: '/moje-karty'});
-            }
-          });
-        }
-        await this.addLogMessage('Axios getShops error = ' + err.message);
-        await this.setContext('NewCard.vue', 'getShops_method', 'string');
-        await this.recordException('Failed to download new shops from database! Internet issue.');
-      });
+    getBase64Image(imgUrl, callback) {
+      let img = new Image();
+      img.onload = function(){
+        let canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        let ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        let dataURL = canvas.toDataURL("image/png");
+        dataURL = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+        callback(dataURL); // the base64 string
+      };
+      img.setAttribute('crossorigin', 'anonymous');
+      img.src = imgUrl;
     },
-    addNewCard() {
-      event.preventDefault();
-      let formData = new FormData();
-      if(this.cardSelectedCountry){
-        if(this.cardManualCode != ''){ // naskenovany kod
-          formData.append('cardName', this.cardShop.shopName + ' karta');
-          formData.append('cardCountry', this.cardSelectedCountry);
-          formData.append('shopId', this.cardShop.shopId);
-          formData.append('cardDesc', this.cardDesc);
-          formData.append('cardManualCode', this.cardManualCode);
-        } /*else if(this.cardManualCode == ''){ // nahraty obrazok
+    async getShops() {
+      try {
+        this.isLoading = true;
+        await FirebasePerformance.startTrace({traceName: 'NewCard.vue/getShops'});
+        await this.$axios.get(this.$apiUrl + "api/cardhub/getShops/", {
+          headers: {
+            'Authorization': `SystemCode ${this.systemCodeName}`
+          }
+        }).then(async response => {
+          if (response.data.status === 'error') {
+            this.isLoading = false;
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Chyba',
+              html: 'Nepodarilo sa načítať obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
+              icon: "warning",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                this.$router.push({path: '/moje-karty'});
+              }
+            });
+          } else {
+
+            let shops = response.data.message;
+            await FirebasePerformance.startTrace({traceName: 'NewCard.vue/getShops/ConvertImageToBase64'});
+            for (let i = 0; i < shops.length; i++) {
+              this.getBase64Image(shops[i].shopLogo, function (base64image) {
+                shops[i].shopLogo = base64image;
+              });
+            }
+            await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/getShops/ConvertImageToBase64'});
+
+            localStorage.setItem('CardHub_CurrentShops', JSON.stringify(response.data.message));
+
+            setTimeout(() => this.isLoading = false, Math.floor(Math.random() * 300));
+            this.cardShops = JSON.parse(localStorage.getItem('CardHub_CurrentShops'));
+            this.isLoading = false;
+
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Úspech',
+              html: 'Obchody načítané!',
+              icon: "success",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
+          }
+        }).catch(async err => {
+          this.isLoading = false;
+          if (!localStorage.getItem('CardHub_CurrentShops')) {
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Chyba',
+              html: 'Nepodarilo sa načítať nové obchody! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.message,
+              icon: "warning",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                this.$router.push({path: '/moje-karty'});
+              }
+            });
+          }
+          await this.addLogMessage('Axios getShops error = ' + err.message);
+          await this.setContext('NewCard.vue', 'getShops_method', 'string');
+          await this.recordException('Failed to download new shops from database! Internet issue.');
+        });
+        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/getShops'});
+      } catch (e) {
+        console.log(e);
+        this.isLoading = false
+        Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
+          title: 'Chyba',
+          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          icon: "error",
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.close();
+          }
+        });
+        await this.addLogMessage('TryCatch getShops error = ' + e);
+        await this.setContext('NewCard.vue', 'getShops_method', 'string');
+        await this.recordException('TryCatch caught error when downlading shops. Possible API issue.');
+      }
+    },
+    async addNewCard() {
+      try {
+        event.preventDefault();
+        let formData = new FormData();
+        if (this.cardSelectedCountry) {
+          if (this.cardManualCode != '') { // naskenovany kod
+            formData.append('cardName', this.cardShop.shopName + ' karta');
+            formData.append('cardCountry', this.cardSelectedCountry);
+            formData.append('shopId', this.cardShop.shopId);
+            formData.append('cardDesc', this.cardDesc);
+            formData.append('cardManualCode', this.cardManualCode);
+          } /*else if(this.cardManualCode == ''){ // nahraty obrazok
           if(this.cardImage[0].size < 5000000) {
             if (this.cardImage[0].type === 'image/jpeg' || this.cardImage[0].type === 'image/jpg' || this.cardImage[0].type === 'image/png') {
               formData.append('file', this.cardImage[0], this.systemCodeName+'_'+this.cardShop.shopName.replaceAll(' ','').toLowerCase().trim()+'_'+this.cardSelectedCountry.toLowerCase().trim()+'_'+this.cardImage[0].name);
@@ -392,11 +468,104 @@ export default {
             }
           }
         }*/
-        this.$axios.post(this.$apiUrl + "api/cardhub/uploadCardWithCode/",formData,{
-          headers: {
-            'Authorization': `SystemCode ${this.systemCodeName}`,
-            'Content-Type': 'multipart/form-data'
+          await FirebasePerformance.startTrace({traceName: 'NewCard.vue/addNewCard'});
+          await this.$axios.post(this.$apiUrl + "api/cardhub/uploadCardWithCode/", formData, {
+            headers: {
+              'Authorization': `SystemCode ${this.systemCodeName}`,
+              'Content-Type': 'multipart/form-data'
+            },
+          }).then(response => {
+            if (response.data.status === 'error') {
+              Swal.fire({
+                customClass: {
+                  container: 'codeFromImageSwal'
+                },
+                title: 'Chyba',
+                html: 'Nepodarilo sa vytvoriť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + response.data.message,
+                icon: "warning",
+                confirmButtonText: 'OK',
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  this.$router.push({path: '/moje-karty'});
+                }
+              });
+            } else {
+              this.cardSelectedCountry = '';
+              this.cardImage = [];
+              this.cardDesc = '';
+              this.cardManualCode = '';
+              //this.reloadCards();
+              this.insertShopDetailsDialog = false;
+              Swal.fire({
+                customClass: {
+                  container: 'codeFromImageSwal'
+                },
+                title: 'Úspech',
+                html: 'Karta vytvorená! Načítaj znova karty pre zobrazenie.',
+                icon: "success",
+                confirmButtonText: 'OK',
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  this.$router.push({path: '/moje-karty'});
+                }
+              });
+            }
+          }).catch(async err => {
+            console.log(err);
+            this.cardSelectedCountry = '';
+            this.cardImage = [];
+            this.cardDesc = '';
+            this.addCardDialog = false;
+            this.cardManualCode = '';
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Chyba',
+              html: 'Nepodarilo sa vytvoriť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
+              icon: "warning",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                this.$router.push({path: '/moje-karty'});
+              }
+            });
+            await this.addLogMessage('Axios add new card error = ' + err.message);
+            await this.setContext('NewCard.vue', 'addNewCard_method', 'string');
+            await this.recordException('Failed to upload new card to database! Internet issue.');
+          });
+        }
+        this.cardSelectedCountry = '';
+        this.cardImage = [];
+        this.cardDesc = '';
+        this.cardManualCode = '';
+        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/addNewCard'});
+      } catch (e) {
+        Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
           },
+          title: 'Chyba',
+          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          icon: "error",
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.close();
+          }
+        });
+        await this.addLogMessage('Add new card TryCatch error = ' + e);
+        await this.setContext('NewCard.vue', 'addNewCard_method', 'string');
+        await this.recordException('Uploading new card failed in TryCatch. Possible API issue.');
+      }
+    },
+    async reloadCards() {
+      try {
+        await FirebasePerformance.startTrace({traceName: 'NewCard.vue/reloadCards'});
+        await this.$axios.get(this.$apiUrl + "api/cardhub/getCards/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1], {
+          headers: {
+            'Authorization': `SystemCode ${this.systemCodeName}`
+          }
         }).then(response => {
           if (response.data.status === 'error') {
             Swal.fire({
@@ -404,7 +573,7 @@ export default {
                 container: 'codeFromImageSwal'
               },
               title: 'Chyba',
-              html: 'Nepodarilo sa vytvoriť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: '+ response.data.message,
+              html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + response.data.message,
               icon: "warning",
               confirmButtonText: 'OK',
             }).then((result) => {
@@ -413,84 +582,32 @@ export default {
               }
             });
           } else {
-            this.cardSelectedCountry = '';
-            this.cardImage = [];
-            this.cardDesc = '';
-            this.cardManualCode = '';
-            this.reloadCards();
-            this.insertShopDetailsDialog = false;
-            Swal.fire({
-              customClass: {
-                container: 'codeFromImageSwal'
-              },
-              title: 'Úspech',
-              html: 'Karta vytvorená!',
-              icon: "success",
-              confirmButtonText: 'OK',
-            }).then((result) => {
-              if (result.isConfirmed) {
-                this.$router.push({path: '/moje-karty'});
-              }
-            });
+            localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
           }
         }).catch(async err => {
-          console.log(err);
-          this.cardSelectedCountry = '';
-          this.cardImage = [];
-          this.cardDesc = '';
-          this.addCardDialog = false;
-          this.cardManualCode = '';
-          Swal.fire({
-            customClass: {
-              container: 'codeFromImageSwal'
-            },
-            title: 'Chyba',
-            html: 'Nepodarilo sa vytvoriť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: '+ err.response.data.message,
-            icon: "warning",
-            confirmButtonText: 'OK',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              this.$router.push({path: '/moje-karty'});
-            }
-          });
-          await this.addLogMessage('Axios add new card error = ' + err.message);
-          await this.setContext('NewCard.vue', 'addNewCard_method', 'string');
-          await this.recordException('Failed to upload new card to database! Internet issue.');
+          await this.addLogMessage('Axios reload cards error = ' + err.message);
+          await this.setContext('NewCard.vue', 'reloadCards_method', 'string');
+          await this.recordException('Failed to reload cards from database! Internet issue.');
         });
-      }
-      this.cardSelectedCountry = '';
-      this.cardImage = [];
-      this.cardDesc = '';
-      this.cardManualCode = '';
-    },
-    reloadCards() {
-      this.$axios.get(this.$apiUrl + "api/cardhub/getCards/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1], {
-        headers: {
-          'Authorization': `SystemCode ${this.systemCodeName}`
-        }
-      }).then(response => {
-        if (response.data.status === 'error') {
-          Swal.fire({
-            customClass: {
-              container: 'codeFromImageSwal'
-            },
-            title: 'Chyba',
-            html: 'Nepodarilo sa obnoviť karty! Pravdepodobne nie si pripojený k internetu. Karty neboli zmenené. \n Chyba: ' + response.data.message,
-            icon: "warning",
-            confirmButtonText: 'OK',
-          }).then((result) => {
-            if (result.isConfirmed) {
-              this.$router.push({path: '/moje-karty'});
-            }
-          });
-        } else {
-          localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
-        }
-      }).catch(async err => {
-        await this.addLogMessage('Axios reload cards error = ' + err.message);
+        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/reloadCards'});
+      } catch (e) {
+        Swal.fire({
+          customClass: {
+            container: 'codeFromImageSwal'
+          },
+          title: 'Chyba',
+          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          icon: "error",
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.close();
+          }
+        });
+        await this.addLogMessage('TryCatch reload cards error = ' + e);
         await this.setContext('NewCard.vue', 'reloadCards_method', 'string');
-        await this.recordException('Failed to reload cards from database! Internet issue.');
-      });
+        await this.recordException('Reloading cards failed in TryCatch. Possible API issue.');
+      }
     }
   },
   beforeUnmount() {

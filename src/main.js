@@ -14,7 +14,9 @@ import '@mdi/font/css/materialdesignicons.css'
 import {App} from '@capacitor/app';
 import {BarcodeScanner} from "@capacitor-community/barcode-scanner";
 import {FirebaseCrashlytics} from "@capacitor-community/firebase-crashlytics";
+import {FirebasePerformance} from "@capacitor-firebase/performance";
 
+FirebasePerformance.setPerformanceCollectionEnabled({enabled: true}).then();
 loadFonts()
 
 const router = createRouter({
