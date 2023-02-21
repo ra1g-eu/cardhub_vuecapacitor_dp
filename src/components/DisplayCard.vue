@@ -18,7 +18,7 @@
                       class="justify-center"></qrcode-vue>
         </div>
         <div v-else>
-          <vue-barcode class="justify-center" :options="{ displayValue: true, width: 2.3, height: 150 }"
+          <vue-barcode class="justify-center" :options="{ displayValue: true, width: 1.5, height: 150 }"
                        tag="svg" :value="this.barcodeCodeToGen">
             Nastala chyba pri generovaní čiarového kódu!
           </vue-barcode>
@@ -241,7 +241,7 @@ export default {
             }
           });
         });
-        await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/editCard'});
+
       } catch (e) {
         Swal.fire({
           customClass: {
@@ -259,6 +259,8 @@ export default {
         await this.addLogMessage('Edit card error TryCatch = ' + e);
         await this.setContext('DisplayCard.vue', 'editCard_method', 'string');
         await this.recordException('Editing card failed in TryCatch. Possbile API issue.');
+      } finally {
+        await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/editCard'});
       }
     },
     showNotes() {
@@ -405,7 +407,7 @@ export default {
           await this.setContext('DisplayCard.vue', 'deleteCard_method', 'string');
           await this.recordException('Failed to remove card from database! Internet issue.');
         });
-        await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/deleteCard'});
+
       } catch (e) {
         Swal.fire({
           customClass: {
@@ -423,6 +425,8 @@ export default {
         await this.addLogMessage('Remove card TryCatch error = ' + e);
         await this.setContext('DisplayCard.vue', 'deleteCard_method', 'string');
         await this.recordException('Failed to remove card in TryCatch. Possible API error.');
+      } finally {
+        await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/deleteCard'});
       }
     },
   },

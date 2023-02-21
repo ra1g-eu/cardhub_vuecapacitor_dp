@@ -91,11 +91,11 @@ export default {
   },
   methods: {
     async createAccount() {
-      try {
-        if (this.registerCode && this.randomSuffix && this.maxUsersSlider) {
-          if (this.registerCode.length <= 20 && this.maxUsersSlider <= 20) {
-            await FirebasePerformance.startTrace({traceName: 'LoginPage.vue/createAccount'});
-            this.$axios.post(this.$apiUrl + "api/cardhub/registerNewAccount/", {
+      if (this.registerCode && this.randomSuffix && this.maxUsersSlider) {
+        if (this.registerCode.length <= 20 && this.maxUsersSlider <= 20) {
+          try {
+            //await FirebasePerformance.startTrace({traceName: 'LoginPage.vue/createAccount'});
+            await this.$axios.post(this.$apiUrl + "api/cardhub/registerNewAccount/", {
               "registrationCode": this.registerCode + this.randomSuffix,
               "maxUsersLimit": this.maxUsersSlider
             }).then(response => {
@@ -134,7 +134,7 @@ export default {
                   container: 'codeFromImageSwal'
                 },
                 title: 'Chyba',
-                html: 'Nie si pripojený k internetu!',
+                html: 'Nepodarilo sa vytvoriť účet! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.message,
                 icon: "warning",
                 confirmButtonText: 'OK',
               }).then((result) => {
@@ -146,31 +146,32 @@ export default {
               await this.setContext('LoginPage.vue', 'createAccount_method', 'string');
               await this.recordException('No internet access when registering! Axios crash.');
             });
+          } catch (e) {
+            Swal.fire({
+              customClass: {
+                container: 'codeFromImageSwal'
+              },
+              title: 'Chyba',
+              html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+              icon: "error",
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                Swal.close();
+              }
+            });
+            await this.addLogMessage('Register account TryCatch error = ' + e);
+            await this.setContext('LoginPage.vue', 'createAccount_method', 'string');
+            await this.recordException('Registering account failed in TryCatch. Possible API issue.');
+          } finally {
             await FirebasePerformance.stopTrace({traceName: 'LoginPage.vue/createAccount'});
           }
         }
-      } catch (e) {
-        Swal.fire({
-          customClass: {
-            container: 'codeFromImageSwal'
-          },
-          title: 'Chyba',
-          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
-          icon: "error",
-          confirmButtonText: 'OK',
-        }).then((result) => {
-          if (result.isConfirmed) {
-            Swal.close();
-          }
-        });
-        await this.addLogMessage('Register account TryCatch error = ' + e);
-        await this.setContext('LoginPage.vue', 'createAccount_method', 'string');
-        await this.recordException('Registering account failed in TryCatch. Possible API issue.');
       }
     },
     async enterSystem() {
-      try {
-        if (this.enterSystemCode) {
+      if (this.enterSystemCode) {
+        try {
           await FirebasePerformance.startTrace({traceName: 'LoginPage.vue/enterSystem'});
           await this.$axios.get(this.$apiUrl + "api/cardhub/enterSystemWithCode/" + this.enterSystemCode.trim().split('#')[0] + "/" + this.enterSystemCode.trim().split('#')[1], {
             headers: {
@@ -216,43 +217,45 @@ export default {
             await this.setContext('LoginPage.vue', 'enterSystem_method', 'string');
             await this.recordException('No internet access when logging in! Axios crash.');
           });
-          await FirebasePerformance.stopTrace({traceName: 'LoginPage.vue/enterSystem'});
-        } else {
+        } catch (e) {
           Swal.fire({
             customClass: {
               container: 'codeFromImageSwal'
             },
             title: 'Chyba',
-            html: 'Prosím zadaj prihlasovací kód.!',
-            icon: "warning",
+            html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+            icon: "error",
             confirmButtonText: 'OK',
           }).then((result) => {
             if (result.isConfirmed) {
               Swal.close();
             }
           });
+          await this.addLogMessage('Login TryCatch error = ' + e);
+          await this.setContext('LoginPage.vue', 'enterSystem_method', 'string');
+          await this.recordException('Login failed in TryCatch block. Possible API issue.');
+        } finally {
+          await FirebasePerformance.stopTrace({traceName: 'LoginPage.vue/enterSystem'});
         }
-      } catch (e) {
+      } else {
         Swal.fire({
           customClass: {
             container: 'codeFromImageSwal'
           },
           title: 'Chyba',
-          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
-          icon: "error",
+          html: 'Prosím zadaj prihlasovací kód.!',
+          icon: "warning",
           confirmButtonText: 'OK',
         }).then((result) => {
           if (result.isConfirmed) {
             Swal.close();
           }
         });
-        await this.addLogMessage('Login TryCatch error = ' + e);
-        await this.setContext('LoginPage.vue', 'enterSystem_method', 'string');
-        await this.recordException('Login failed in TryCatch block. Possible API issue.');
       }
     }
   },
   async mounted() {
+
     await FirebasePerformance.startTrace({traceName: 'LoginPage.vue/uuidv4Time'});
     let uuid = uuidv4();
     this.randomSuffix = "#" + uuid.substring(9, 13).toUpperCase();

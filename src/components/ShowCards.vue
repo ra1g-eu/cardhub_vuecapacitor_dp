@@ -1,9 +1,11 @@
 <template>
   <v-app-bar
-      density="compact"
+      density="comfortable"
       color="black"
       app>
-    <v-toolbar-title>Moje karty - {{ this.selectedCountry }}</v-toolbar-title>
+    <v-toolbar-title v-if="isSearch == false">Moje karty - {{ this.selectedCountry }}</v-toolbar-title>
+    <v-toolbar-title v-else><v-text-field clearable single-line density="compact" class="mt-8 align-center" v-model="searchQuery" label="Názov karty" variant="solo"></v-text-field></v-toolbar-title>
+    <v-btn icon="mdi-credit-card-search" border="0" variant="outlined" @click="searchForCard"></v-btn>
     <v-btn icon="mdi-logout" border="0" variant="outlined" @click="logOut"></v-btn>
   </v-app-bar>
   <v-snackbar
@@ -156,12 +158,24 @@ export default {
       cardsMessage: '',
       cardsArray: [],
       cardUrl: '',
-      barcodeCodeToGen: ''
+      barcodeCodeToGen: '',
+      searchQuery: '',
+      isSearch: false,
     }
   },
   computed: {
     filterCards() {
       let filteredCards = this.cardsArray;
+
+      if (this.searchQuery != '' && this.searchQuery) {
+        filteredCards = filteredCards.filter((item) => {
+
+          return item.card_name
+              .toUpperCase()
+              .includes(this.searchQuery.toUpperCase())
+
+        });
+      }
 
       if (this.selectedCountry == 'Slovensko') {
         filteredCards = filteredCards.filter((item) => {
@@ -202,6 +216,12 @@ export default {
     }
   },
   methods: {
+    async searchForCard(){
+      await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/searchForCard'});
+      this.isSearch = !this.isSearch;
+      this.searchQuery = '';
+      await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/searchForCard'});
+    },
     async filterFreq() {
       await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/filterFreq'});
       this.filterFrequency = !this.filterFrequency;
@@ -283,7 +303,7 @@ export default {
               await this.setContext('ShowCards.vue', 'LogOut_Method', 'string');
               await this.recordException('No internet access when logging out! Axios crash.');
             });
-            await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/logOut'});
+
           } else {
             Swal.close();
           }
@@ -305,6 +325,8 @@ export default {
         await this.addLogMessage('Logout TryCatch error = ' + e);
         await this.setContext('ShowCards.vue', 'LogOut_Method', 'string');
         await this.recordException('Logout unexpected error caught in TryCatch.');
+      } finally {
+        await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/logOut'});
       }
     },
     showOverlay(url, code) {
@@ -356,11 +378,15 @@ export default {
               }
             });
           } else {
+            // ak novy ucet = 0 kariet = neulozit do localStorage
             if (!localStorage.getItem('CardHub_MyCards')) {
               await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards/saveCardsForFirstTime'});
               localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
               await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards/saveCardsForFirstTime'});
             } else {
+              if(JSON.parse(localStorage.getItem('CardHub_MyCards')) === "Zatiaľ nemáš žiadne karty!"){
+                localStorage.setItem('CardHub_MyCards', "");
+              }
               await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards/parseCardsInJSON'});
               const parsed = Object.assign([], JSON.parse(localStorage.getItem('CardHub_MyCards')));
               const result = Object.assign([], response.data.message);
@@ -414,7 +440,7 @@ export default {
           await this.recordException('Failed to download cards! Internet issue.');
         });
         this.showLoading = false;
-        await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards'});
+
       } catch (e) {
         Swal.fire({
           customClass: {
@@ -432,6 +458,8 @@ export default {
         await this.addLogMessage('Reload cards TryCatch error = ' + e);
         await this.setContext('ShowCards.vue', 'reloadCards_method', 'string');
         await this.recordException('Error occured in TryCatch block!');
+      } finally {
+        await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards'});
       }
     }
   },

@@ -32,7 +32,7 @@
       </v-list>
     </v-card-text>
     <v-card-text class="d-flex flex-column justify-center" v-else>
-      <span class="text-center text-subtitle-1">Žiadne obchody sa nenašli! Potiahni dole pre obnovenie.</span>
+      <span v-if="!isLoading" class="text-center text-subtitle-1">Nemáš uložené žiadne obchody! Potiahni dole pre načítanie obchodov.</span>
       <v-card v-if="isLoading" class="justify-center align-center fill-height d-flex flex-column" color="yellow-darken-1">
         <v-progress-circular
             :size="65"
@@ -232,7 +232,7 @@ export default {
               await this.setContext('NewCard.vue', 'codeFromImageLoaded_method', 'string');
               await this.recordException('Failed to read code from image!');
             });
-        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/codeFromImageLoaded'});
+
       } catch (e) {
         Swal.fire({
           customClass: {
@@ -250,6 +250,8 @@ export default {
         await this.addLogMessage('Html5Qrcode TryCatch error = ' + e);
         await this.setContext('NewCard.vue', 'codeFromImageLoaded_method', 'string');
         await this.recordException('Html5Qrcode method failed in TryCatch block.');
+      } finally {
+        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/codeFromImageLoaded'});
       }
     },
     stopScan() {
@@ -309,7 +311,7 @@ export default {
                 }
               });
             }
-            await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/startScan/codeFound'});
+
           }
         } else {
           Swal.fire({
@@ -330,6 +332,8 @@ export default {
         await this.addLogMessage('Device camera error = ' + e.toString());
         await this.setContext('NewCard.vue', 'startScan_method', 'string');
         await this.recordException('Failed to scan QR code with device camera!');
+      } finally {
+        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/startScan/codeFound'});
       }
     },
     getBase64Image(imgUrl, callback) {
@@ -348,8 +352,8 @@ export default {
       img.src = imgUrl;
     },
     async getShops() {
+      this.isLoading = true;
       try {
-        this.isLoading = true;
         await FirebasePerformance.startTrace({traceName: 'NewCard.vue/getShops'});
         await this.$axios.get(this.$apiUrl + "api/cardhub/getShops/", {
           headers: {
@@ -423,16 +427,16 @@ export default {
           await this.setContext('NewCard.vue', 'getShops_method', 'string');
           await this.recordException('Failed to download new shops from database! Internet issue.');
         });
-        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/getShops'});
+
       } catch (e) {
         console.log(e);
-        this.isLoading = false
+        this.isLoading = false;
         Swal.fire({
           customClass: {
             container: 'codeFromImageSwal'
           },
           title: 'Chyba',
-          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          html: 'Neočakávaná chyba. Skús to prosím neskôr. ('+e.toString()+')',
           icon: "error",
           confirmButtonText: 'OK',
         }).then((result) => {
@@ -443,6 +447,9 @@ export default {
         await this.addLogMessage('TryCatch getShops error = ' + e);
         await this.setContext('NewCard.vue', 'getShops_method', 'string');
         await this.recordException('TryCatch caught error when downlading shops. Possible API issue.');
+      } finally {
+        this.isLoading = false;
+        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/getShops'});
       }
     },
     async addNewCard() {
@@ -522,7 +529,7 @@ export default {
                 container: 'codeFromImageSwal'
               },
               title: 'Chyba',
-              html: 'Nepodarilo sa vytvoriť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.response.data.message,
+              html: 'Nepodarilo sa vytvoriť kartu! Pravdepodobne nie si pripojený k internetu. \n Chyba: ' + err.message,
               icon: "warning",
               confirmButtonText: 'OK',
             }).then((result) => {
@@ -539,14 +546,14 @@ export default {
         this.cardImage = [];
         this.cardDesc = '';
         this.cardManualCode = '';
-        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/addNewCard'});
+
       } catch (e) {
         Swal.fire({
           customClass: {
             container: 'codeFromImageSwal'
           },
           title: 'Chyba',
-          html: 'Neočakávaná chyba. Skús to prosím neskôr.',
+          html: 'Neočakávaná chyba. Skús to prosím neskôr. ('+e.toString()+')',
           icon: "error",
           confirmButtonText: 'OK',
         }).then((result) => {
@@ -557,6 +564,8 @@ export default {
         await this.addLogMessage('Add new card TryCatch error = ' + e);
         await this.setContext('NewCard.vue', 'addNewCard_method', 'string');
         await this.recordException('Uploading new card failed in TryCatch. Possible API issue.');
+      } finally {
+        await FirebasePerformance.stopTrace({traceName: 'NewCard.vue/addNewCard'});
       }
     },
     async reloadCards() {
