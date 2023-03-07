@@ -383,8 +383,18 @@ export default {
               html: 'Karta vymazaná',
               icon: "success",
               confirmButtonText: 'OK',
-            }).then((result) => {
+            }).then(async (result) => {
               if (result.isConfirmed) {
+                let cards = JSON.parse(localStorage.getItem('CardHub_MyCards'));
+                await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/deleteCard/forLoop_deleteCard'});
+                for (let i = 0, len = cards.length; i < len; i++) {
+                  if (cards[i].card_uuid === this.cardUuid) {
+                    cards.splice(i, 1);
+                    break;
+                  }
+                }
+                localStorage.setItem('CardHub_MyCards', JSON.stringify(cards));
+                await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/deleteCard/forLoop_deleteCard'});
                 this.$router.push({path: '/moje-karty'});
               }
             });
@@ -437,6 +447,7 @@ export default {
         .namedItem('viewport')
         .setAttribute('content', 'width=device-width,initial-scale=1.0,maximum-scale=2.5');
     this.cards = JSON.parse(localStorage.getItem('CardHub_MyCards'));
+
     await FirebasePerformance.startTrace({traceName: 'DisplayCard.vue/created/forLoop_loadCard'});
     for (let i = 0, len = this.cards.length; i < len; i++) {
       if (this.cards[i].card_uuid == this.$route.params.id) {
@@ -452,6 +463,7 @@ export default {
       }
     }
     await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/created/forLoop_loadCard'});
+
     localStorage.setItem('CardHub_MyCards', JSON.stringify(this.cards));
     await FirebasePerformance.stopTrace({traceName: 'DisplayCard.vue/created'});
   },

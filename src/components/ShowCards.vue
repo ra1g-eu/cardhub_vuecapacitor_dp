@@ -265,7 +265,7 @@ export default {
               headers: {
                 'Authorization': `SystemCode ${this.systemCodeName}`
               }
-            }).then(response => {
+            }).then(async response => {
               if (response.data.status === 'error') {
                 Swal.fire({
                   customClass: {
@@ -281,7 +281,9 @@ export default {
                   }
                 });
               } else {
+                await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/logOut/deleteLocalStorage'});
                 localStorage.clear();
+                await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/logOut/deleteLocalStorage'});
                 this.$router.push({path: '/'});
               }
             }).catch(async err => {
@@ -384,13 +386,20 @@ export default {
               localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
               await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards/saveCardsForFirstTime'});
             } else {
-              if(JSON.parse(localStorage.getItem('CardHub_MyCards')) === "Zatiaľ nemáš žiadne karty!"){
-                localStorage.setItem('CardHub_MyCards', "");
+              if(JSON.parse(localStorage.getItem('CardHub_MyCards')) === "Zatiaľ nemáš žiadne karty!" && response.data.message == "Zatiaľ nemáš žiadne karty!"){
+                localStorage.setItem('CardHub_MyCards', "Zatiaľ nemáš žiadne karty!");
+              }
+              if(JSON.parse(localStorage.getItem('CardHub_MyCards')) === "Zatiaľ nemáš žiadne karty!" && response.data.message != "Zatiaľ nemáš žiadne karty!"){
+                localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
               }
               await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards/parseCardsInJSON'});
               const parsed = Object.assign([], JSON.parse(localStorage.getItem('CardHub_MyCards')));
+
               const result = Object.assign([], response.data.message);
-              let result2 = parsed.map((item, i) => Object.assign({}, item, result[i]));
+
+              let result2 = result.map((item, i) => Object.assign({}, item, parsed[i]));
+
+
               localStorage.setItem('CardHub_MyCards', JSON.stringify(result2));
               await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards/parseCardsInJSON'});
             }

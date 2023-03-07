@@ -94,7 +94,7 @@ export default {
       if (this.registerCode && this.randomSuffix && this.maxUsersSlider) {
         if (this.registerCode.length <= 20 && this.maxUsersSlider <= 20) {
           try {
-            //await FirebasePerformance.startTrace({traceName: 'LoginPage.vue/createAccount'});
+            await FirebasePerformance.startTrace({traceName: 'LoginPage.vue/createAccount'});
             await this.$axios.post(this.$apiUrl + "api/cardhub/registerNewAccount/", {
               "registrationCode": this.registerCode + this.randomSuffix,
               "maxUsersLimit": this.maxUsersSlider
