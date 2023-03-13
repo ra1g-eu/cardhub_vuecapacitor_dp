@@ -358,6 +358,7 @@ export default {
       img.src = imgUrl;
     },
     async reloadCards() {
+      var responseData = [];
       try {
         await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards'});
         await this.$axios.get(this.$apiUrl + "api/cardhub/getCards/" + this.systemCodeName.trim().split('#')[0] + "/" + this.systemCodeName.trim().split('#')[1], {
@@ -380,15 +381,15 @@ export default {
               }
             });
           } else {
+            responseData = (response.data).toString();
             // ak novy ucet = 0 kariet = neulozit do localStorage
             if (!localStorage.getItem('CardHub_MyCards')) {
               await FirebasePerformance.startTrace({traceName: 'ShowCards.vue/reloadCards/saveCardsForFirstTime'});
               localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
               await FirebasePerformance.stopTrace({traceName: 'ShowCards.vue/reloadCards/saveCardsForFirstTime'});
+            } else if(JSON.parse(localStorage.getItem('CardHub_MyCards')) === "Zatiaľ nemáš žiadne karty!" && response.data.message == "Zatiaľ nemáš žiadne karty!"){
+              localStorage.setItem('CardHub_MyCards', "Zatiaľ nemáš žiadne karty!");
             } else {
-              if(JSON.parse(localStorage.getItem('CardHub_MyCards')) === "Zatiaľ nemáš žiadne karty!" && response.data.message == "Zatiaľ nemáš žiadne karty!"){
-                localStorage.setItem('CardHub_MyCards', "Zatiaľ nemáš žiadne karty!");
-              }
               if(JSON.parse(localStorage.getItem('CardHub_MyCards')) === "Zatiaľ nemáš žiadne karty!" && response.data.message != "Zatiaľ nemáš žiadne karty!"){
                 localStorage.setItem('CardHub_MyCards', JSON.stringify(response.data.message));
               }
@@ -464,7 +465,7 @@ export default {
             Swal.close();
           }
         });
-        await this.addLogMessage('Reload cards TryCatch error = ' + e);
+        await this.addLogMessage('Reload cards TryCatch error = ' + e + " ("+responseData+")");
         await this.setContext('ShowCards.vue', 'reloadCards_method', 'string');
         await this.recordException('Error occured in TryCatch block!');
       } finally {

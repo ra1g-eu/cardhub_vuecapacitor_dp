@@ -86,6 +86,7 @@ export default {
       enterSystemAlertMessage: "",
       registerCode: "",
       randomSuffix: "",
+      isSuccess: false,
       registerRules: [v => v.length <= 20 || 'Najviac 20 znakov'],
     }
   },
@@ -126,7 +127,7 @@ export default {
                   html: 'Účet vytvorený, prihlasujem...',
                   icon: "success",
                 });
-                this.enterSystem();
+                this.isSuccess = true;
               }
             }).catch(async err => {
               Swal.fire({
@@ -164,7 +165,9 @@ export default {
             await this.setContext('LoginPage.vue', 'createAccount_method', 'string');
             await this.recordException('Registering account failed in TryCatch. Possible API issue.');
           } finally {
+            this.isSuccess = false;
             await FirebasePerformance.stopTrace({traceName: 'LoginPage.vue/createAccount'});
+            await this.enterSystem();
           }
         }
       }

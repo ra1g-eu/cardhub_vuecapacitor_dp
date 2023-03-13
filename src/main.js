@@ -82,9 +82,10 @@ appV.use(router);
 appV.mount('#app');
 
 axios.defaults.headers.common['App-Request-Header'] = 'CardHub/REQ/CH/1.0.0';
+
 appV.config.globalProperties.$axios = axios;
 appV.config.globalProperties.$router = router;
-appV.config.globalProperties.$apiUrl = 'https://api.ra1g.eu/';
+appV.config.globalProperties.$apiUrl = 'https://cardhub.eu-4.evennode.com/';
 //appV.config.globalProperties.$apiUrl = 'http://localhost:3000/';
 
 router.beforeEach((to) => {

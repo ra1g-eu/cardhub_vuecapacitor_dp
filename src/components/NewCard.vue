@@ -454,7 +454,7 @@ export default {
     },
     async addNewCard() {
       try {
-        event.preventDefault();
+        await FirebasePerformance.startTrace({traceName: 'NewCard.vue/addNewCard'});
         let formData = new FormData();
         if (this.cardSelectedCountry) {
           if (this.cardManualCode != '') { // naskenovany kod
@@ -475,7 +475,7 @@ export default {
             }
           }
         }*/
-          await FirebasePerformance.startTrace({traceName: 'NewCard.vue/addNewCard'});
+
           await this.$axios.post(this.$apiUrl + "api/cardhub/uploadCardWithCode/", formData, {
             headers: {
               'Authorization': `SystemCode ${this.systemCodeName}`,
